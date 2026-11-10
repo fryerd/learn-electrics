@@ -34,12 +34,12 @@ const FITTED_POS = new THREE.Vector3(0, 0, D / 2 + 0.3);
 const FITTED_QUAT = new THREE.Quaternion();
 // Where the cable ends (in plate space): out in front when pulled out, tucked inside the box when fitted.
 const S_PULLED = new THREE.Vector3(0.5, -3.4, -5.8);
-const S_FITTED = new THREE.Vector3(0.5, -3.6, -2.2);
+const S_FITTED = new THREE.Vector3(0.5, -3.75, -2.2);
 const CABLE_BOX_PTS = [
   new THREE.Vector3(CABLE_X, -14, -1.5),
-  new THREE.Vector3(CABLE_X, -8.5, -0.6),
-  new THREE.Vector3(CABLE_X, -4.9, -0.6),
-  new THREE.Vector3(CABLE_X, -3.0, -0.5),
+  new THREE.Vector3(CABLE_X, -8.5, -1.1),
+  new THREE.Vector3(CABLE_X, -4.9, -1.1),
+  new THREE.Vector3(CABLE_X, -3.75, -1.1),
 ];
 const CABLE_P4 = new THREE.Vector3(CABLE_X - 0.2, -0.8, 0.9);
 const CABLE_P5 = new THREE.Vector3(0.8, 1.2, 3.0);
@@ -484,7 +484,7 @@ export class SocketScene {
     shape.lineTo(-W / 2, D / 2);
     shape.closePath();
     const hole = new THREE.Path();
-    hole.absarc(CABLE_X, -0.6, 0.55, 0, Math.PI * 2, true);
+    hole.absarc(CABLE_X, -1.1, 0.55, 0, Math.PI * 2, true);
     shape.holes.push(hole);
     const bg = new THREE.ExtrudeGeometry(shape, { depth: T, bevelEnabled: false, curveSegments: 28 });
     bg.rotateX(Math.PI / 2);
@@ -496,11 +496,11 @@ export class SocketScene {
     // Fixing lugs at 60.3 mm centres.
     for (const s of [1, -1]) {
       const lug = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 1.4, 20).rotateX(Math.PI / 2), metal);
-      lug.position.set(0, s * 3.015, -D / 2 + T + 0.7);
+      lug.position.set(s * 3.015, 0, -D / 2 + T + 0.7);
       g.add(lug);
       this.register('backbox', lug);
       const dark = new THREE.Mesh(new THREE.CircleGeometry(0.14, 16), new THREE.MeshBasicMaterial({ color: 0x222222 }));
-      dark.position.set(0, s * 3.015, -D / 2 + T + 1.41);
+      dark.position.set(s * 3.015, 0, -D / 2 + T + 1.41);
       g.add(dark);
     }
 
@@ -521,15 +521,15 @@ export class SocketScene {
       this.register('knockout', disc);
     };
     const inner = W / 2 - T - 0.012;
-    knock(-2.5, 0, -D / 2 + T + 0.012, 0, 0);
-    knock(2.5, 0, -D / 2 + T + 0.012, 0, 0);
+    knock(0, 2.5, -D / 2 + T + 0.012, 0, 0);
+    knock(0, -2.5, -D / 2 + T + 0.012, 0, 0);
     knock(inner, 0, 0, 0, Math.PI / 2);
     knock(-inner, 0, 0, 0, Math.PI / 2);
     knock(0, inner, 0, Math.PI / 2, 0);
 
     const grommet = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.1, 10, 28), std(0x151515, { roughness: 0.8 }));
     grommet.rotation.x = Math.PI / 2;
-    grommet.position.set(CABLE_X, -W / 2 + T + 0.02, -0.6);
+    grommet.position.set(CABLE_X, -W / 2 + T + 0.02, -1.1);
     g.add(grommet);
     this.register('knockout', grommet);
 
@@ -553,7 +553,7 @@ export class SocketScene {
     p.add(plateMesh);
     this.register('faceplate', plateMesh);
 
-    const body = new THREE.Mesh(new RoundedBoxGeometry(6.2, 5.2, 2.4, 4, 0.25), std(0xe4e0d3, { roughness: 0.45 }));
+    const body = new THREE.Mesh(new RoundedBoxGeometry(5.2, 6.2, 2.4, 4, 0.25), std(0xe4e0d3, { roughness: 0.45 }));
     body.position.z = -1.5;
     p.add(body);
     this.register('faceplate', body);
@@ -579,16 +579,16 @@ export class SocketScene {
     // Fixing screws: long enough to reach the box lugs when fitted, with slotted heads on the front.
     for (const sgn of [1, -1]) {
       const screw = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 2.1, 14).rotateX(Math.PI / 2), brass());
-      screw.position.set(0, sgn * 3.015, -1.35);
+      screw.position.set(sgn * 3.015, 0, -1.35);
       p.add(screw);
       this.register('screws', screw);
       const tip = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.17, 0.2, 14).rotateX(Math.PI / 2), brass());
-      tip.position.set(0, sgn * 3.015, -2.5);
+      tip.position.set(sgn * 3.015, 0, -2.5);
       p.add(tip);
       this.register('screws', tip);
 
       const head = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.1, 20).rotateX(Math.PI / 2), brass());
-      head.position.set(0, sgn * 3.015, 0.37);
+      head.position.set(sgn * 3.015, 0, 0.37);
       const groove = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.07, 0.04), std(0x3a3226, { roughness: 0.7 }));
       groove.position.z = 0.05;
       head.add(groove);
@@ -598,8 +598,8 @@ export class SocketScene {
 
     const terminals: { id: 'line' | 'neutral' | 'earth'; x: number; y: number; letter: string; lx: number; ly: number }[] = [
       { id: 'earth', x: 0, y: 1.55, letter: 'E', lx: 1.5, ly: 1.55 },
-      { id: 'line', x: 1.45, y: -1.0, letter: 'L', lx: 2.5, ly: -1.0 },
-      { id: 'neutral', x: -1.45, y: -1.0, letter: 'N', lx: -2.5, ly: -1.0 },
+      { id: 'line', x: 1.45, y: -1.0, letter: 'L', lx: 1.45, ly: 0.1 },
+      { id: 'neutral', x: -1.45, y: -1.0, letter: 'N', lx: -1.45, ly: 0.1 },
     ];
     const recess = new THREE.MeshBasicMaterial({ color: 0x55524a });
     for (const t of terminals) {
@@ -634,7 +634,7 @@ export class SocketScene {
     }
 
     this.anchor('faceplate', p, new THREE.Vector3(3.7, 2.4, -0.33));
-    this.anchor('screws', p, new THREE.Vector3(0, 3.015, -2.2));
+    this.anchor('screws', p, new THREE.Vector3(3.015, 0, -2.5));
     p.updateMatrixWorld(true);
   }
 
@@ -879,7 +879,7 @@ export class SocketScene {
 
   private tick(time: number) {
     const t = time / 1000;
-    const dt = Math.min(t - this.lastTime, 0.05);
+    const dt = Math.max(0, Math.min(t - this.lastTime, 0.05)); // never negative, never a big jump
     this.lastTime = t;
 
     if (this.tween) {
