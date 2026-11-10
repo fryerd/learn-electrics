@@ -49,10 +49,11 @@ button {
 .app {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 400px;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
   grid-template-areas:
     'top top'
     'stage panel'
+    'strip strip'
     'foot foot';
   height: 100svh;
   min-height: 620px;
@@ -251,12 +252,14 @@ h1 {
   color: var(--ink);
   border-bottom-color: var(--brown);
 }
+.pane-body,
 [role='tabpanel'] {
   padding: 16px 18px 20px;
   overflow-y: auto;
   min-height: 0;
   flex: 1;
 }
+.pane-body[hidden],
 [role='tabpanel'][hidden] {
   display: none;
 }
@@ -423,14 +426,28 @@ h1 {
   .panel {
     flex: none;
   }
+  .pane-body,
   [role='tabpanel'] {
     overflow: visible;
   }
   .disclaimer p {
     max-height: none;
   }
-  .chip {
+  .lesson-chip-hidden,
+  .progress-label {
     display: none;
+  }
+  .stage {
+    order: 1;
+  }
+  .strip {
+    order: 2;
+  }
+  .panel {
+    order: 3;
+  }
+  .disclaimer {
+    order: 4;
   }
   .toolbar {
     gap: 2px;
@@ -660,4 +677,376 @@ h1 {
 }
 .wire-actions {
   margin-top: 12px;
+}
+
+/* ----------------------------- panes (one per chapter) ----------------------------- */
+.stage-pane {
+  position: absolute;
+  inset: 0;
+}
+.stage-pane[hidden],
+.panel-pane[hidden] {
+  display: none;
+}
+.panel-pane {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.act {
+  margin: 0 0 6px;
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+/* ------------------------------ header progress chip ------------------------------ */
+.progress-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.progress-label {
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.progress-bar {
+  width: 80px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--line);
+  overflow: hidden;
+}
+.progress-bar i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+  transition: width 0.4s;
+}
+
+/* -------------------------------- chapter strip -------------------------------- */
+.strip {
+  grid-area: strip;
+  padding-top: 10px;
+  min-width: 0;
+}
+.strip-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+.strip-head h2 {
+  margin: 0;
+  font-size: 15px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.strip-act {
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.strip-row {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+.strip-scroll {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 2px 2px 8px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+}
+.chapter-card {
+  position: relative;
+  flex: none;
+  width: 218px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  border: 2px solid var(--line);
+  background: var(--card);
+  border-radius: 12px;
+  padding: 8px 10px;
+  scroll-snap-align: start;
+  transition: border-color 0.15s, background 0.15s;
+}
+.chapter-card:hover {
+  border-color: var(--ink-soft);
+}
+.chapter-card[aria-current='true'] {
+  border-color: var(--ink);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(29, 35, 43, 0.12);
+}
+.chapter-card.is-soon {
+  border-style: dashed;
+}
+.chapter-thumb {
+  flex: none;
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  background: var(--paper);
+  color: var(--ink);
+  display: grid;
+  place-items: center;
+}
+.chapter-thumb svg {
+  width: 34px;
+  height: 34px;
+}
+.chapter-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.chapter-text small {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: var(--ink-soft);
+}
+.chapter-text b {
+  font-size: 15px;
+  line-height: 1.12;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.chapter-state {
+  position: absolute;
+  top: -8px;
+  right: 8px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: var(--paper);
+  border: 1.5px solid var(--line);
+  border-radius: 9px;
+  padding: 0 7px;
+  color: var(--ink-soft);
+}
+.chapter-state.done {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--good);
+  border-color: var(--good);
+  color: #fff;
+}
+.strip-next {
+  flex: none;
+  width: 44px;
+  border: 2px solid var(--line);
+  background: var(--card);
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 8px;
+}
+.strip-next:hover {
+  border-color: var(--ink-soft);
+}
+
+/* --------------------------- chapter 1: electricity basics --------------------------- */
+.bs-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.bs-tank {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 3;
+}
+.bs-water {
+  fill: rgba(31, 95, 191, 0.38);
+}
+.bs-pipe {
+  fill: #dde5ee;
+  stroke: var(--ink);
+  stroke-width: 3;
+}
+.bs-valve {
+  fill: var(--ink);
+}
+.bs-dot {
+  fill: var(--accent);
+}
+.bs-label {
+  font: 700 13px var(--font);
+  letter-spacing: 0.14em;
+  fill: var(--ink-soft);
+}
+.bs-big {
+  font: 700 25px var(--font);
+  fill: var(--ink);
+}
+.bs-lamp {
+  fill: #fff3c4;
+  stroke: var(--ink);
+  stroke-width: 3;
+}
+.bs-fil {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.bs-glow {
+  fill: #ffd24a;
+  opacity: 0.2;
+}
+.slider-card {
+  margin-top: 12px;
+}
+.slider-card label {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 14px;
+}
+.slider-card input[type='range'] {
+  width: 100%;
+  accent-color: var(--accent);
+  margin: 6px 0 0;
+}
+.readouts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+.readout {
+  border: 2px solid var(--line);
+  background: var(--paper);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+.readout small {
+  display: block;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+}
+.readout b {
+  font-size: 24px;
+}
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+.presets .ghost {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+.challenge {
+  margin-top: 14px;
+  border-left: 5px solid var(--accent);
+  background: var(--paper);
+  border-radius: 0 8px 8px 0;
+  padding: 8px 12px;
+  font-size: 15px;
+}
+.challenge.ok {
+  border-left-color: var(--good);
+  background: var(--good-bg);
+}
+.tri {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 6px 0 14px;
+}
+.tri-svg {
+  flex: none;
+  width: 118px;
+}
+.tri-shape {
+  fill: var(--paper);
+  stroke: var(--ink);
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+.tri-line {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+.tri-svg text {
+  font: 700 22px var(--font);
+  fill: var(--ink);
+}
+.tri-svg text.covered {
+  fill: var(--accent);
+}
+.tri-buttons {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.tri-buttons .ghost {
+  padding: 5px 10px;
+  font-size: 13px;
+}
+.tri-buttons .ghost[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: #fff;
+}
+.tri-formula {
+  margin: 8px 0 0;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+/* ------------------------------ "coming soon" chapters ------------------------------ */
+.soon-stage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  text-align: center;
+  padding: 24px;
+}
+.soon-icon {
+  width: 130px;
+  height: 130px;
+  color: var(--ink-soft);
+  opacity: 0.55;
+}
+.soon-stage h2 {
+  margin: 8px 0 0;
+  font-size: 26px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.soon-stage p {
+  margin: 0;
+  font-size: 15px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
 }

@@ -245,10 +245,20 @@ export class SocketScene {
     this.bindPicking();
     new ResizeObserver(() => this.resize()).observe(host);
     this.resize();
-    this.renderer.setAnimationLoop((t) => this.tick(t));
+    this.start();
   }
 
   /* ------------------------------ public API ------------------------------ */
+
+  /** Start (or resume) rendering. Call pause() when the chapter is hidden. */
+  start() {
+    this.resize();
+    this.renderer.setAnimationLoop((t) => this.tick(t));
+  }
+
+  pause() {
+    this.renderer.setAnimationLoop(null);
+  }
 
   select(id: PartId | null) {
     this.selected = id;

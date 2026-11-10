@@ -1,4 +1,5 @@
 import { lesson, parts, quiz, type PartId } from '../data/socket-lesson';
+import { mountQuiz } from './quiz';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -64,61 +65,7 @@ export function initPanel(onSelect: (id: PartId) => void, onTab: (tab: Tab) => v
   };
 
   /* ------------------------------- quiz ------------------------------- */
-  let qi = 0;
-  let score = 0;
-  const renderQuiz = () => {
-    viewQuiz.innerHTML = '';
-    const wrap = document.createElement('div');
-    wrap.className = 'quiz';
-    viewQuiz.append(wrap);
-
-    if (qi >= quiz.length) {
-      wrap.innerHTML = `
-        <div class="quiz-progress">Finished</div>
-        <p class="score">${score} / ${quiz.length}</p>
-        <p>${score === quiz.length ? 'Full marks. Nicely done.' : 'Have another look around the socket, then try again.'}</p>
-        <button class="primary" type="button" id="quiz-restart">Try again</button>`;
-      wrap.querySelector('#quiz-restart')!.addEventListener('click', () => {
-        qi = 0;
-        score = 0;
-        renderQuiz();
-      });
-      return;
-    }
-
-    const q = quiz[qi];
-    wrap.innerHTML = `
-      <div class="quiz-progress">Question ${qi + 1} of ${quiz.length}</div>
-      <h2>${q.q}</h2>
-      <div class="options"></div>
-      <div class="feedback" aria-live="polite"></div>`;
-    const opts = wrap.querySelector('.options')!;
-    const fb = wrap.querySelector('.feedback')!;
-    const btns = q.options.map((text, i) => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.textContent = text;
-      b.addEventListener('click', () => {
-        const right = i === q.answer;
-        if (right) score++;
-        btns.forEach((x, j) => {
-          x.disabled = true;
-          if (j === q.answer) x.classList.add('right');
-          else if (j === i) x.classList.add('wrong');
-        });
-        fb.innerHTML = `<div class="why"><b>${right ? 'Correct.' : 'Not quite.'}</b> ${q.why}</div>
-          <button class="primary" type="button" id="quiz-next">${qi + 1 < quiz.length ? 'Next' : 'See score'}</button>`;
-        fb.querySelector('#quiz-next')!.addEventListener('click', () => {
-          qi++;
-          renderQuiz();
-        });
-        (fb.querySelector('#quiz-next') as HTMLButtonElement).focus();
-      });
-      opts.append(b);
-      return b;
-    });
-  };
-  renderQuiz();
+  mountQuiz(viewQuiz, quiz, { retryHint: 'Have another look around the socket, then try again.' });
 
   return { select };
 }

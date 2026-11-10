@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>Learn Electrics · The UK socket</title>
+    <title>Learn Electrics</title>
     <meta
       name="description"
-      content="An interactive 3D look inside a UK 13 A socket: terminals, cable colours, earthing and a short quiz. A personal educational project."
+      content="Interactive UK electrics, from the street to the appliances: volts and amps, a 3D 13 A socket you can wire yourself, and more. A personal educational project."
     />
     <meta name="theme-color" content="#f4f3ef" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -26,33 +26,61 @@
         </div>
         <div class="header-right">
           <span class="cores" aria-hidden="true"><i class="core-brown"></i><i class="core-blue"></i><i class="core-earth"></i></span>
-          <div class="chip" id="lesson-chip">Lesson 1 · The socket outlet</div>
+          <div class="chip progress-chip" id="progress-chip" title="Chapters you have finished (saved in this browser)">
+            <span class="progress-label">Chapters</span>
+            <span class="progress-bar"><i id="progress-fill"></i></span>
+            <b id="progress-count">0/11</b>
+          </div>
         </div>
       </header>
 
-      <main class="stage" aria-label="Interactive 3D socket">
-        <div class="canvas-host" id="canvas-host"></div>
-        <div class="hotspots" id="hotspots"></div>
-        <div class="hint" id="hint">Drag to orbit · Scroll to zoom · Tap a number</div>
-        <div class="toolbar" role="toolbar" aria-label="View controls">
-          <button id="btn-reset" type="button" title="Reset view">Reset view</button>
-          <button id="btn-rotate" type="button" aria-pressed="false" title="Slowly rotate the scene">Auto-rotate</button>
-          <button id="btn-colours" type="button" aria-pressed="false" title="Show pre-2004 cable colours">
-            Older colours
-          </button>
+      <main class="stage" id="stage" aria-label="Interactive lesson">
+        <!-- Chapter 7: the socket (3D) -->
+        <div class="stage-pane" id="stage-socket" hidden>
+          <div class="canvas-host" id="canvas-host"></div>
+          <div class="hotspots" id="hotspots"></div>
+          <div class="hint" id="hint">Drag to orbit · Scroll to zoom · Tap a number</div>
+          <div class="toolbar" role="toolbar" aria-label="View controls">
+            <button id="btn-reset" type="button" title="Reset view">Reset view</button>
+            <button id="btn-rotate" type="button" aria-pressed="false" title="Slowly rotate the scene">Auto-rotate</button>
+            <button id="btn-colours" type="button" aria-pressed="false" title="Show pre-2004 cable colours">
+              Older colours
+            </button>
+          </div>
         </div>
+        <!-- Chapter 1: electricity basics (water-pipe animation) -->
+        <div class="stage-pane" id="stage-basics" hidden></div>
+        <!-- Chapters not built yet -->
+        <div class="stage-pane" id="stage-soon" hidden></div>
       </main>
 
       <aside class="panel" aria-label="Lesson panel">
-        <div class="tabs" role="tablist">
-          <button id="tab-parts" role="tab" aria-selected="true" aria-controls="view-parts">Parts</button>
-          <button id="tab-wire" role="tab" aria-selected="false" aria-controls="view-wire">Wire it</button>
-          <button id="tab-quiz" role="tab" aria-selected="false" aria-controls="view-quiz">Quiz</button>
+        <div class="panel-pane" id="panel-socket" hidden>
+          <div class="tabs" role="tablist">
+            <button id="tab-parts" role="tab" aria-selected="true" aria-controls="view-parts">Parts</button>
+            <button id="tab-wire" role="tab" aria-selected="false" aria-controls="view-wire">Wire it</button>
+            <button id="tab-quiz" role="tab" aria-selected="false" aria-controls="view-quiz">Quiz</button>
+          </div>
+          <section id="view-parts" role="tabpanel" aria-labelledby="tab-parts"></section>
+          <section id="view-wire" role="tabpanel" aria-labelledby="tab-wire" hidden></section>
+          <section id="view-quiz" role="tabpanel" aria-labelledby="tab-quiz" hidden></section>
         </div>
-        <section id="view-parts" role="tabpanel" aria-labelledby="tab-parts"></section>
-        <section id="view-wire" role="tabpanel" aria-labelledby="tab-wire" hidden></section>
-        <section id="view-quiz" role="tabpanel" aria-labelledby="tab-quiz" hidden></section>
+        <div class="panel-pane" id="panel-basics" hidden></div>
+        <div class="panel-pane" id="panel-soon" hidden></div>
       </aside>
+
+      <nav class="strip" aria-label="Chapters">
+        <div class="strip-head">
+          <h2>Chapters</h2>
+          <span class="strip-act" id="strip-act"></span>
+        </div>
+        <div class="strip-row">
+          <div class="strip-scroll" id="strip-scroll"></div>
+          <button class="strip-next" id="strip-next" type="button" aria-label="Scroll to more chapters">
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </nav>
 
       <footer class="disclaimer">
         <p>
