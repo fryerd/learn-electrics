@@ -730,7 +730,7 @@ export class SocketScene {
       const on = id === this.selected;
       const intensity = on ? (this.reduced ? 0.4 : 0.3 + 0.2 * Math.sin(t * 4)) : 0;
       entry.mats.forEach((m) => {
-        m.emissive.set(0xe8742a);
+        m.emissive.set(0xbcd8ff);
         m.emissiveIntensity = intensity;
       });
     }
@@ -751,11 +751,11 @@ export class SocketScene {
     if (this.mode === 'wire' && this.activeConductor) {
       const pulse = this.reduced ? 0.4 : 0.3 + 0.2 * Math.sin(t * 4);
       const mat = this.conductors.get(this.activeConductor)!.mat;
-      mat.emissive.set(0xe8742a);
+      mat.emissive.set(0xbcd8ff);
       mat.emissiveIntensity = pulse;
       this.terminalMats.forEach((ms) =>
         ms.forEach((m) => {
-          m.emissive.set(0xe8742a);
+          m.emissive.set(0xbcd8ff);
           m.emissiveIntensity = pulse * 0.8;
         }),
       );
@@ -764,12 +764,12 @@ export class SocketScene {
     if (this.mode === 'wire') {
       if (this.hoverConductor && this.hoverConductor !== this.activeConductor) {
         const m = this.conductors.get(this.hoverConductor)!.mat;
-        m.emissive.set(0xe8742a);
+        m.emissive.set(0xbcd8ff);
         m.emissiveIntensity = 0.3;
       }
       if (this.hoverTerminal && this.activeConductor) {
         this.terminalMats.get(this.hoverTerminal)?.forEach((m) => {
-          m.emissive.set(0xe8742a);
+          m.emissive.set(0xbcd8ff);
           m.emissiveIntensity = 0.85;
         });
       }

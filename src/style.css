@@ -1,14 +1,18 @@
 :root {
-  --paper: #f3ecdc;
-  --paper-2: #ebe2cc;
-  --ink: #1d2a44;
-  --ink-soft: #4b5873;
-  --line: #d6c9a8;
-  --accent: #e8742a;
+  /* Palette E, "cable colours": a neutral base with the UK cable core colours as accents. */
+  --paper: #f4f3ef;
+  --paper-2: #eae8e1;
+  --ink: #1d232b;
+  --ink-soft: #505a66;
+  --line: #d9d5cb;
+  --accent: #1f5fbf; /* neutral blue */
   --accent-ink: #ffffff;
-  --card: #fbf7ec;
+  --brown: #6b3f1d; /* line brown */
+  --card: #fbfaf7;
   --good: #2f8f4f;
-  --bad: #c0392b;
+  --bad: #b3382c;
+  --good-bg: #e4f2e8;
+  --bad-bg: #f9e4e1;
   --font: 'Barlow Semi Condensed', system-ui, -apple-system, 'Segoe UI', sans-serif;
   color-scheme: light;
 }
@@ -110,15 +114,15 @@ h1 {
   border-radius: 16px;
   overflow: hidden;
   background:
-    radial-gradient(ellipse at 40% 40%, #fbf5e6 0%, var(--paper) 55%, var(--paper-2) 100%);
+    radial-gradient(ellipse at 40% 40%, #fcfbf7 0%, var(--paper) 55%, var(--paper-2) 100%);
 }
 .stage::before {
   content: '';
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(to right, rgba(29, 42, 68, 0.06) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(29, 42, 68, 0.06) 1px, transparent 1px);
+    linear-gradient(to right, rgba(29, 35, 43, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(29, 35, 43, 0.06) 1px, transparent 1px);
   background-size: 40px 40px;
   pointer-events: none;
 }
@@ -142,13 +146,13 @@ h1 {
   margin: -15px 0 0 -15px;
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.85);
-  background: rgba(232, 116, 42, 0.72);
+  background: rgba(31, 95, 191, 0.72);
   color: var(--accent-ink);
   font-weight: 700;
   font-size: 15px;
   display: grid;
   place-items: center;
-  box-shadow: 0 1px 4px rgba(29, 42, 68, 0.25);
+  box-shadow: 0 1px 4px rgba(29, 35, 43, 0.25);
   pointer-events: auto;
   cursor: pointer;
   /* Position is set per frame via --x/--y; hover scale uses the separate `scale`
@@ -160,8 +164,8 @@ h1 {
 .hotspot:hover,
 .hotspot:focus-visible {
   scale: 1.18;
-  background: rgb(232, 116, 42);
-  box-shadow: 0 0 0 4px rgba(232, 116, 42, 0.3), 0 2px 6px rgba(29, 42, 68, 0.3);
+  background: rgb(31, 95, 191);
+  box-shadow: 0 0 0 4px rgba(31, 95, 191, 0.3), 0 2px 6px rgba(29, 35, 43, 0.3);
 }
 .hotspot.occluded {
   opacity: 0.3;
@@ -173,8 +177,8 @@ h1 {
   display: none;
 }
 .hotspot[aria-pressed='true'] {
-  background: var(--ink);
-  box-shadow: 0 0 0 4px rgba(232, 116, 42, 0.5);
+  background: var(--brown);
+  box-shadow: 0 0 0 4px rgba(31, 95, 191, 0.5);
 }
 .hint {
   position: absolute;
@@ -248,7 +252,7 @@ h1 {
 }
 .tabs button[aria-selected='true'] {
   color: var(--ink);
-  border-bottom-color: var(--ink);
+  border-bottom-color: var(--brown);
 }
 [role='tabpanel'] {
   padding: 16px 18px 20px;
@@ -362,11 +366,11 @@ h1 {
 }
 .options button.right {
   border-color: var(--good);
-  background: #e3f3e8;
+  background: var(--good-bg);
 }
 .options button.wrong {
   border-color: var(--bad);
-  background: #fbe6e3;
+  background: var(--bad-bg);
 }
 .why {
   margin: 12px 0;
@@ -375,8 +379,8 @@ h1 {
   background: var(--paper);
 }
 .primary {
-  border: 2px solid var(--ink);
-  background: var(--ink);
+  border: 2px solid var(--accent);
+  background: var(--accent);
   color: #fff;
   border-radius: 10px;
   padding: 8px 18px;
@@ -495,7 +499,7 @@ h1 {
 .chip[aria-pressed='true'] {
   border-color: var(--accent);
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(232, 116, 42, 0.3);
+  box-shadow: 0 0 0 3px rgba(31, 95, 191, 0.3);
 }
 .chip.term[aria-disabled='true'] {
   opacity: 0.55;
@@ -505,7 +509,7 @@ h1 {
   width: 34px;
   height: 14px;
   border-radius: 7px;
-  border: 1px solid rgba(29, 42, 68, 0.35);
+  border: 1px solid rgba(29, 35, 43, 0.35);
 }
 .letter {
   flex: none;
@@ -551,11 +555,11 @@ h1 {
   padding: 8px 10px;
   border-radius: 8px;
   border-left: 5px solid var(--bad);
-  background: #fbe6e3;
+  background: var(--bad-bg);
 }
 .wire-results li.ok {
   border-left-color: var(--good);
-  background: #e3f3e8;
+  background: var(--good-bg);
 }
 .wire-summary {
   margin: 6px 0 0;
@@ -594,4 +598,35 @@ h1 {
   width: 28px;
   height: 28px;
   font-size: 16px;
+}
+
+/* Header: the three UK cable core colours */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.cores {
+  display: flex;
+  gap: 6px;
+}
+.cores i {
+  display: block;
+  width: 40px;
+  height: 9px;
+  border-radius: 5px;
+}
+.core-brown {
+  background: #6b3f1d;
+}
+.core-blue {
+  background: #1f5fbf;
+}
+.core-earth {
+  background: repeating-linear-gradient(90deg, #2f9e4f 0 5px, #f2c40f 5px 10px);
+}
+@media (max-width: 880px) {
+  .cores {
+    display: none;
+  }
 }
