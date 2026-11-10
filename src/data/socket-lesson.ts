@@ -5,7 +5,7 @@
 export type PartId =
   | 'faceplate'
   | 'screws'
-  | 'live'
+  | 'line'
   | 'neutral'
   | 'earth'
   | 'sheath'
@@ -38,9 +38,9 @@ export const parts: PartInfo[] = [
     short:
       'The faceplate is the part you see from the room. The moulded body behind it holds the three terminals.',
     points: [
-      'Shown here from the rear. From the front, earth is at the top, live is bottom right and neutral is bottom left, so the view is mirrored.',
+      'Shown here from the rear. From the front, earth is at the top, line is bottom right and neutral is bottom left, so the view is mirrored.',
       'The terminals are marked L, N and E. Always check the markings rather than trusting colour alone.',
-      'The slots in the front are shuttered, so nothing can touch live or neutral unless the longer earth pin of a plug opens them.',
+      'The slots in the front are shuttered, so nothing can touch line or neutral unless the longer earth pin of a plug opens them.',
     ],
     uk: 'UK sockets are 13 A outlets to BS 1363, designed to be used with fused BS 1363 plugs.',
   },
@@ -56,13 +56,14 @@ export const parts: PartInfo[] = [
     ],
   },
   {
-    id: 'live',
+    id: 'line',
     n: 3,
-    title: 'Live terminal (L)',
+    title: 'Line terminal (L)',
     short:
-      'The live conductor carries current from the supply to whatever is plugged in. It is brown in current UK colours.',
+      'The line conductor carries current from the supply to whatever is plugged in. It is brown in current UK colours.',
     points: [
-      'Brown replaced red as the live colour in the UK. You will still find red on older installations.',
+      'Brown replaced red as the line colour in the UK. You will still find red on older installations.',
+      'Many people say "live", but the neutral is a live conductor too, so we say line.',
       'Strip only enough insulation so the bare copper sits fully in the clamp, with no copper showing outside.',
       'On a ring final circuit, two brown cores (one from each side of the ring) normally share this terminal.',
     ],
@@ -96,7 +97,7 @@ export const parts: PartInfo[] = [
     n: 6,
     title: 'Cable sheath (twin and earth)',
     short:
-      'The grey PVC outer sheath holds the live, neutral and bare earth conductors together and protects them.',
+      'The grey PVC outer sheath holds the line, neutral and bare earth conductors together and protects them.',
     points: [
       '2.5 mm² twin and earth is the usual cable for socket circuits.',
       'Strip back only as much sheath as you need, and keep the sheath inside the back box so no cores are left exposed.',
@@ -151,7 +152,7 @@ export const quiz: QuizQuestion[] = [
     q: 'In current UK colours, which conductor connects to the L terminal?',
     options: ['Blue', 'Brown', 'Green and yellow'],
     answer: 1,
-    why: 'Live is brown. Blue is neutral and green and yellow is earth. Older installations may use red for live.',
+    why: 'Line is brown. Blue is neutral and green and yellow is earth. Older installations may use red for line.',
   },
   {
     q: 'What must cover the bare earth conductor of twin and earth cable where the sheath is stripped?',
@@ -167,7 +168,7 @@ export const quiz: QuizQuestion[] = [
     q: 'Looking at the front of a UK socket, where is the earth terminal?',
     options: ['Top', 'Bottom left', 'Bottom right'],
     answer: 0,
-    why: 'Earth is at the top, live is bottom right and neutral is bottom left. From behind the plate it looks mirrored.',
+    why: 'Earth is at the top, line is bottom right and neutral is bottom left. From behind the plate it looks mirrored.',
   },
   {
     q: 'Why does a metal back box need an earth tail?',

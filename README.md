@@ -4,7 +4,7 @@ Interactive 3D explainers for UK electrical installation basics, built as a pers
 
 Lesson 1 is a 13 A socket outlet pulled out of its back box: orbit it, tap the numbered parts, flip between current and pre-2004 cable colours, and take a short quiz.
 
-> **For personal interest only.** This is an educational project, not a substitute for qualified training or a guide to carrying out electrical work. Electrical work must be done by a competent person, and much domestic work in England and Wales is notifiable under Part P of the Building Regulations. Content follows UK practice (BS 7671:2018, the 18th Edition, and BS 1363) and may be out of date, so always check the current regulations.
+> **For personal interest only.** This is an educational project, not a substitute for qualified training or a guide to carrying out electrical work. Electrical work must be done by a competent person, and much domestic work in England and Wales is notifiable under Part P of the Building Regulations. Content follows UK practice (BS 7671:2018+A4:2026, the 18th Edition, and BS 1363) and may be out of date, so always check the current regulations.
 
 ## Stack
 

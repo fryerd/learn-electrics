@@ -91,7 +91,7 @@ export class SocketScene {
   private plate = new THREE.Group();
   private reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  private liveMat = std(COLOURS.brown, { roughness: 0.45 });
+  private lineMat = std(COLOURS.brown, { roughness: 0.45 });
   private neutralMat = std(COLOURS.blue, { roughness: 0.45 });
 
   private defaultPos = new THREE.Vector3(9, 7, 35);
@@ -188,7 +188,7 @@ export class SocketScene {
   }
 
   setColourScheme(scheme: ColourScheme) {
-    this.liveMat.color.set(scheme === 'current' ? COLOURS.brown : COLOURS.red);
+    this.lineMat.color.set(scheme === 'current' ? COLOURS.brown : COLOURS.red);
     this.neutralMat.color.set(scheme === 'current' ? COLOURS.blue : COLOURS.black);
   }
 
@@ -326,9 +326,9 @@ export class SocketScene {
       this.register('screws', tip);
     }
 
-    const terminals: { id: 'live' | 'neutral' | 'earth'; x: number; y: number; letter: string; lx: number; ly: number }[] = [
+    const terminals: { id: 'line' | 'neutral' | 'earth'; x: number; y: number; letter: string; lx: number; ly: number }[] = [
       { id: 'earth', x: 0, y: 1.55, letter: 'E', lx: 1.5, ly: 1.55 },
-      { id: 'live', x: 1.45, y: -1.0, letter: 'L', lx: 2.5, ly: -1.0 },
+      { id: 'line', x: 1.45, y: -1.0, letter: 'L', lx: 2.5, ly: -1.0 },
       { id: 'neutral', x: -1.45, y: -1.0, letter: 'N', lx: -2.5, ly: -1.0 },
     ];
     const recess = new THREE.MeshBasicMaterial({ color: 0x55524a });
@@ -428,9 +428,9 @@ export class SocketScene {
     const down = new THREE.Vector3(0, -1, 0).transformDirection(this.plate.matrixWorld);
     const upW = new THREE.Vector3(0, 1, 0).transformDirection(this.plate.matrixWorld);
 
-    // Live and neutral approach their clamps from below.
+    // Line and neutral approach their clamps from below.
     for (const [id, mat, x, off] of [
-      ['live', this.liveMat, 1.45, -0.17],
+      ['line', this.lineMat, 1.45, -0.17],
       ['neutral', this.neutralMat, -1.45, 0.17],
     ] as const) {
       const A = startFor(off, 0);
