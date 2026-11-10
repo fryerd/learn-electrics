@@ -27,6 +27,36 @@ const T = 0.12; // box wall thickness
 const REAR_Z = -2.7; // plate-local z of the socket body's rear face
 const CABLE_X = 1.8;
 
+// Pose of the plate when pulled out of the box, and when screwed onto it.
+const PULLED_POS = new THREE.Vector3(-8.2, 4.2, 6.5);
+const PULLED_QUAT = new THREE.Quaternion().setFromEuler(new THREE.Euler(0.15, Math.PI + 0.45, -0.1));
+const FITTED_POS = new THREE.Vector3(0, 0, D / 2 + 0.3);
+const FITTED_QUAT = new THREE.Quaternion();
+// Where the cable ends (in plate space): out in front when pulled out, tucked inside the box when fitted.
+const S_PULLED = new THREE.Vector3(0.5, -3.4, -5.8);
+const S_FITTED = new THREE.Vector3(0.5, -3.6, -2.2);
+const CABLE_BOX_PTS = [
+  new THREE.Vector3(CABLE_X, -14, -1.5),
+  new THREE.Vector3(CABLE_X, -8.5, -0.6),
+  new THREE.Vector3(CABLE_X, -4.9, -0.6),
+  new THREE.Vector3(CABLE_X, -3.0, -0.5),
+];
+const CABLE_P4 = new THREE.Vector3(CABLE_X - 0.2, -0.8, 0.9);
+const CABLE_P5 = new THREE.Vector3(0.8, 1.2, 3.0);
+// When fitted, the earth core and the tail run inside the box (world space).
+const FIT_CPC_VIA = [
+  new THREE.Vector3(-2.6, -3.3, -0.9),
+  new THREE.Vector3(-2.4, -1.2, -1.1),
+  new THREE.Vector3(-2.4, 2.3, -1.1),
+];
+const FIT_TAIL = [
+  new THREE.Vector3(-3.1, -0.6, -1.1),
+  new THREE.Vector3(-3.2, 0.2, -1.1),
+  new THREE.Vector3(-3.2, 1.4, -1.1),
+  new THREE.Vector3(-2.9, 2.8, -1.1),
+  new THREE.Vector3(-1.4, 3.5, -1.3),
+];
+
 const COLOURS = {
   brown: 0x6b3f1d,
   blue: 0x1f5fbf,
@@ -112,6 +142,17 @@ export class SocketScene {
   private activeConductor: WireId | null = null;
   private hoverConductor: WireId | null = null;
   private hoverTerminal: WireId | null = null;
+  // Fitting the faceplate: `fit` moves the plate (0 pulled out .. 1 on the box), then `screw` turns the screws.
+  private fitWanted = false;
+  private fit = 0;
+  private screw = 0;
+  private screwHeads: THREE.Mesh[] = [];
+  private cableMesh!: THREE.Mesh;
+  private capMesh!: THREE.Mesh;
+  private tailMesh!: THREE.Mesh;
+  private tailBareMesh!: THREE.Mesh;
+  private sheathAnchorObj!: THREE.Object3D;
+  private tailAnchorObj!: THREE.Object3D;
   private sheathEnd = new THREE.Vector3();
   private tEnd = new THREE.Vector3();
   private n1 = new THREE.Vector3();
@@ -241,21 +282,23 @@ export class SocketScene {
     this.mode = mode;
     this.selected = null;
     this.activeConductor = null;
+    // Always start from the plate pulled out (instantly, no animation).
+    this.fitWanted = false;
+    this.fit = 0;
+    this.screw = 0;
+    this.applyScrew();
+    this.setFit(0);
     if (mode === 'wire') this.setAssignments({ line: null, neutral: null, earth: null });
     else this.setAssignments({ line: 'line', neutral: 'neutral', earth: 'earth' });
     // Wire mode moves in closer to the plate; explore mode returns to the full view.
-    const wireTarget = this.defaultTarget.clone().add(new THREE.Vector3(-1.8, -0.9, 0));
-    const pos =
-      mode === 'wire'
-        ? wireTarget.clone().add(this.defaultPos.clone().sub(this.defaultTarget).multiplyScalar(0.78))
-        : this.defaultPos.clone();
-    this.flyTo(pos, mode === 'wire' ? wireTarget : this.defaultTarget.clone());
+    const wv = this.wireView();
+    this.flyTo(mode === 'wire' ? wv.pos : this.defaultPos.clone(), mode === 'wire' ? wv.target : this.defaultTarget.clone());
     this.onWiringChange();
   }
 
   /** Pick up a conductor (detaching it if connected). Same one again puts it down. */
   selectConductor(id: WireId | null) {
-    if (this.mode !== 'wire') return;
+    if (this.mode !== 'wire' || this.fitWanted) return;
     if (id !== null && id === this.activeConductor) {
       this.activeConductor = null;
     } else {
@@ -271,7 +314,7 @@ export class SocketScene {
   /** Connect the picked-up conductor to a terminal (swapping out any occupant). */
   assignToTerminal(terminal: WireId) {
     const id = this.activeConductor;
-    if (this.mode !== 'wire' || id === null) return;
+    if (this.mode !== 'wire' || this.fitWanted || id === null) return;
     for (const other of WIRE_IDS) {
       if (other !== id && this.assignments[other] === terminal) {
         this.assignments[other] = null;
@@ -290,14 +333,37 @@ export class SocketScene {
   }
 
   resetWiring() {
-    if (this.mode !== 'wire') return;
+    if (this.mode !== 'wire' || this.fitWanted) return;
     this.activeConductor = null;
     this.setAssignments({ line: null, neutral: null, earth: null });
     this.onWiringChange();
   }
 
-  getWiring(): { mode: SceneMode; assignments: Assignments; active: WireId | null } {
-    return { mode: this.mode, assignments: { ...this.assignments }, active: this.activeConductor };
+  getWiring(): {
+    mode: SceneMode;
+    assignments: Assignments;
+    active: WireId | null;
+    fit: 'off' | 'fitting' | 'fitted' | 'removing';
+  } {
+    return { mode: this.mode, assignments: { ...this.assignments }, active: this.activeConductor, fit: this.fitState() };
+  }
+
+  /** Screw the faceplate onto the box (needs all three cores connected), or take it off again. */
+  setFitted(on: boolean) {
+    if (this.mode !== 'wire' || on === this.fitWanted) return;
+    if (on && !WIRE_IDS.every((id) => this.assignments[id] !== null)) return;
+    this.activeConductor = null;
+    this.hoverConductor = null;
+    this.fitWanted = on;
+    if (on) this.flyTo(new THREE.Vector3(6, 4.5, 27), new THREE.Vector3(0, 0, 2));
+    else this.flyTo(this.wireView().pos, this.wireView().target);
+    this.onWiringChange();
+  }
+
+  private wireView() {
+    const target = this.defaultTarget.clone().add(new THREE.Vector3(-1.8, -0.9, 0));
+    const pos = target.clone().add(this.defaultPos.clone().sub(this.defaultTarget).multiplyScalar(0.78));
+    return { pos, target };
   }
 
   private setAssignments(a: Assignments) {
@@ -479,8 +545,8 @@ export class SocketScene {
 
   private buildPlate() {
     const p = this.plate;
-    p.position.set(-8.2, 4.2, 6.5);
-    p.rotation.set(0.15, Math.PI + 0.45, -0.1);
+    p.position.copy(PULLED_POS);
+    p.quaternion.copy(PULLED_QUAT);
     this.scene.add(p);
 
     const plateMesh = new THREE.Mesh(new RoundedBoxGeometry(W, W, 0.6, 5, 0.28), std(0xf3f1ea, { roughness: 0.35 }));
@@ -510,16 +576,24 @@ export class SocketScene {
       p.add(hole);
     }
 
-    // Fixing screws poking through the rear.
-    for (const s of [1, -1]) {
-      const screw = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 1.8, 14).rotateX(Math.PI / 2), brass());
-      screw.position.set(0, s * 3.015, -1.2);
+    // Fixing screws: long enough to reach the box lugs when fitted, with slotted heads on the front.
+    for (const sgn of [1, -1]) {
+      const screw = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 2.1, 14).rotateX(Math.PI / 2), brass());
+      screw.position.set(0, sgn * 3.015, -1.35);
       p.add(screw);
       this.register('screws', screw);
       const tip = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.17, 0.2, 14).rotateX(Math.PI / 2), brass());
-      tip.position.set(0, s * 3.015, -2.2);
+      tip.position.set(0, sgn * 3.015, -2.5);
       p.add(tip);
       this.register('screws', tip);
+
+      const head = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.1, 20).rotateX(Math.PI / 2), brass());
+      head.position.set(0, sgn * 3.015, 0.37);
+      const groove = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.07, 0.04), std(0x3a3226, { roughness: 0.7 }));
+      groove.position.z = 0.05;
+      head.add(groove);
+      p.add(head);
+      this.screwHeads.push(head);
     }
 
     const terminals: { id: 'line' | 'neutral' | 'earth'; x: number; y: number; letter: string; lx: number; ly: number }[] = [
@@ -565,58 +639,18 @@ export class SocketScene {
   }
 
   private buildCableAndConductors() {
-    const up = new THREE.Vector3(0, 1, 0);
-    const toWorld = (x: number, y: number, z: number) => this.plate.localToWorld(new THREE.Vector3(x, y, z));
-    const S = toWorld(0.5, -3.4, -5.8);
+    // Meshes are created once; their shapes are (re)computed by updateRouting() whenever the plate moves.
+    this.cableMesh = new THREE.Mesh(new THREE.BufferGeometry(), std(0xcfd2d4, { roughness: 0.55 }));
+    this.scene.add(this.cableMesh);
+    this.register('sheath', this.cableMesh);
+    this.capMesh = new THREE.Mesh(new THREE.CircleGeometry(0.4, 24), std(0xb7bbbe, { roughness: 0.7 }));
+    this.scene.add(this.capMesh);
+    this.register('sheath', this.capMesh);
+    this.sheathAnchorObj = new THREE.Object3D();
+    this.scene.add(this.sheathAnchorObj);
+    this.anchors.set('sheath', this.sheathAnchorObj);
 
-    const pts = [
-      new THREE.Vector3(CABLE_X, -14, -1.5),
-      new THREE.Vector3(CABLE_X, -8.5, -0.6),
-      new THREE.Vector3(CABLE_X, -4.9, -0.6),
-      new THREE.Vector3(CABLE_X, -3.0, -0.5),
-      new THREE.Vector3(CABLE_X - 0.2, -0.8, 0.9),
-      new THREE.Vector3(0.8, 1.2, 3.0),
-    ];
-    const mid = pts[pts.length - 1].clone().lerp(S, 0.5).add(new THREE.Vector3(0, 1.0, 0.5));
-    pts.push(mid, S);
-    const cable = new THREE.CatmullRomCurve3(pts, false, 'centripetal');
-    const sheathMat = std(0xcfd2d4, { roughness: 0.55 });
-    const sheath = new THREE.Mesh(new THREE.TubeGeometry(cable, 240, 0.4, 16, false), sheathMat);
-    this.scene.add(sheath);
-    this.register('sheath', sheath);
-
-    const tEnd = cable.getTangentAt(1).normalize();
-    const cap = new THREE.Mesh(new THREE.CircleGeometry(0.4, 24), std(0xb7bbbe, { roughness: 0.7 }));
-    cap.position.copy(S).addScaledVector(tEnd, 0.001);
-    cap.lookAt(S.clone().add(tEnd));
-    this.scene.add(cap);
-    this.register('sheath', cap);
-    this.anchor('sheath', this.scene, cable.getPointAt(0.8));
-
-    const n1 = tEnd.clone().cross(up).normalize();
-    const n2 = tEnd.clone().cross(n1).normalize();
-    this.sheathEnd.copy(S);
-    this.tEnd.copy(tEnd);
-    this.n1.copy(n1);
-    this.n2.copy(n2);
-
-    const tube = (points: THREE.Vector3[], r: number, mat: THREE.Material, seg = 80) =>
-      new THREE.Mesh(
-        new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points, false, 'centripetal'), seg, r, 10, false),
-        mat,
-      );
-
-    const down = new THREE.Vector3(0, -1, 0).transformDirection(this.plate.matrixWorld);
-    const upW = new THREE.Vector3(0, 1, 0).transformDirection(this.plate.matrixWorld);
-    this.zOut = new THREE.Vector3(0, 0, -1).transformDirection(this.plate.matrixWorld);
-    this.cpcVia = [toWorld(-3.5, -1.5, -4.6), toWorld(-3.0, 2.6, -4.0)];
-
-    // Where each terminal takes a conductor: line and neutral from below, earth from above.
-    this.terminalInfo.set('line', { entry: toWorld(1.45, -1.0 - 0.6, REAR_Z - 0.55), dir: down });
-    this.terminalInfo.set('neutral', { entry: toWorld(-1.45, -1.0 - 0.6, REAR_Z - 0.55), dir: down });
-    this.terminalInfo.set('earth', { entry: toWorld(-0.25, 1.55 + 0.6, REAR_Z - 0.55), dir: upW });
-
-    // The three cores from the cable. Their routes are rebuilt whenever they are (re)connected.
+    // The three cores from the cable.
     const sleeveMat = std(0xffffff, { roughness: 0.45 });
     sleeveMat.map = stripedTexture();
     const sleeveTail = sleeveMat.clone();
@@ -644,34 +678,136 @@ export class SocketScene {
       const c: Conductor = { id, mat, off, ins, bare, hit, lift: 0 };
       this.conductors.set(id, c);
     }
-    this.setAssignments({ line: 'line', neutral: 'neutral', earth: 'earth' });
 
-    const tailEntry = toWorld(0.25, 1.55 + 0.6, REAR_Z - 0.55);
-    const t0 = new THREE.Vector3(-2.8, -1.0, -D / 2 + T + 0.3);
-    const t1 = new THREE.Vector3(-2.8, -0.8, 2.2);
+    // The earth tail from the back box to the earth terminal.
+    this.tailMesh = new THREE.Mesh(new THREE.BufferGeometry(), sleeveTail);
+    this.scene.add(this.tailMesh);
+    this.register('tail', this.tailMesh);
+    this.tailBareMesh = new THREE.Mesh(new THREE.BufferGeometry(), copper());
+    this.scene.add(this.tailBareMesh);
+    this.register('tail', this.tailBareMesh);
+    this.tailAnchorObj = new THREE.Object3D();
+    this.scene.add(this.tailAnchorObj);
+    this.anchors.set('tail', this.tailAnchorObj);
+
+    this.assignments = { line: 'line', neutral: 'neutral', earth: 'earth' };
+    this.updateRouting(0);
+  }
+
+  /** Move the plate along its fitting path (e: 0 pulled out .. 1 on the box) and re-route everything attached to it. */
+  private setFit(t: number) {
+    const e = t * t * (3 - 2 * t);
+    this.plate.position.lerpVectors(PULLED_POS, FITTED_POS, e);
+    this.plate.position.z += Math.sin(Math.PI * e) * 3.0; // swing out in front of the box on the way in
+    this.plate.quaternion.slerpQuaternions(PULLED_QUAT, FITTED_QUAT, e);
+    this.plate.updateMatrixWorld(true);
+    this.updateRouting(e);
+  }
+
+  /** Recompute the cable, the cores and the earth tail for the plate's current pose. */
+  private updateRouting(e: number) {
+    const toWorld = (v: THREE.Vector3) => this.plate.localToWorld(v.clone());
+    const at = (x: number, y: number, z: number) => this.plate.localToWorld(new THREE.Vector3(x, y, z));
+    const S = toWorld(S_PULLED.clone().lerp(S_FITTED, e));
+
+    // Cable: in through the bottom of the box, then either out to the plate or ending inside the box.
+    const P3 = CABLE_BOX_PTS[3];
+    const P4 = CABLE_P4.clone().lerp(P3.clone().lerp(S, 0.4), e);
+    const P5 = CABLE_P5.clone().lerp(P3.clone().lerp(S, 0.75), e);
+    const mid = P5.clone().lerp(S, 0.5).add(new THREE.Vector3(0, 1.0 * (1 - e), 0.5 * (1 - e)));
+    const cable = new THREE.CatmullRomCurve3([...CABLE_BOX_PTS, P4, P5, mid, S], false, 'centripetal');
+    this.cableMesh.geometry.dispose();
+    this.cableMesh.geometry = new THREE.TubeGeometry(cable, 240, 0.4, 16, false);
+
+    const tEnd = cable.getTangentAt(1).normalize();
+    this.capMesh.position.copy(S).addScaledVector(tEnd, 0.001);
+    this.capMesh.lookAt(S.clone().add(tEnd));
+    this.sheathAnchorObj.position.copy(cable.getPointAt(0.8));
+
+    const n1 = tEnd.clone().cross(new THREE.Vector3(0, 1, 0)).normalize();
+    const n2 = tEnd.clone().cross(n1).normalize();
+    this.sheathEnd.copy(S);
+    this.tEnd.copy(tEnd);
+    this.n1.copy(n1);
+    this.n2.copy(n2);
+
+    const down = new THREE.Vector3(0, -1, 0).transformDirection(this.plate.matrixWorld);
+    const upW = new THREE.Vector3(0, 1, 0).transformDirection(this.plate.matrixWorld);
+    this.zOut = new THREE.Vector3(0, 0, -1).transformDirection(this.plate.matrixWorld);
+    this.cpcVia = [
+      at(-3.0, -3.5, -4.4).lerp(FIT_CPC_VIA[0], e),
+      at(-3.5, -1.5, -4.6).lerp(FIT_CPC_VIA[1], e),
+      at(-3.0, 2.6, -4.0).lerp(FIT_CPC_VIA[2], e),
+    ];
+
+    // Where each terminal takes a conductor: line and neutral from below, earth from above.
+    this.terminalInfo.set('line', { entry: at(1.45, -1.0 - 0.6, REAR_Z - 0.55), dir: down });
+    this.terminalInfo.set('neutral', { entry: at(-1.45, -1.0 - 0.6, REAR_Z - 0.55), dir: down });
+    this.terminalInfo.set('earth', { entry: at(-0.25, 1.55 + 0.6, REAR_Z - 0.55), dir: upW });
+    for (const c of this.conductors.values()) this.rebuildConductor(c);
+
+    // Earth tail: round the plate's lower-left edge when pulled out (never through the socket),
+    // straight up inside the box when fitted.
+    const tailEntry = at(0.25, 1.55 + 0.6, REAR_Z - 0.55);
     const I = tailEntry.clone().addScaledVector(upW, 0.45);
     const C = I.clone().addScaledVector(upW, 1.1);
-    // The box sits behind the plate, so the tail has to travel round the plate's lower-left edge
-    // (outside its footprint) to reach the earth terminal on the near side: never through it.
-    const tailRoute = [
-      t0,
-      t1,
-      toWorld(-5.6, -5.8, -2.8),
-      toWorld(-4.9, -3.0, -3.8),
-      toWorld(-4.2, 0.8, -3.7),
-      toWorld(-2.4, 3.1, -3.6),
-      C,
-      I,
+    const t0 = new THREE.Vector3(-2.8, -1.0, -D / 2 + T + 0.3);
+    const pulledWps = [
+      new THREE.Vector3(-2.8, -0.8, 2.2),
+      at(-5.6, -5.8, -2.8),
+      at(-4.9, -3.0, -3.8),
+      at(-4.2, 0.8, -3.7),
+      at(-2.4, 3.1, -3.6),
     ];
-    const tail = tube(tailRoute, 0.15, sleeveTail, 120);
-    this.scene.add(tail);
-    this.register('tail', tail);
-    const tailBare = tube([I, tailEntry.clone().addScaledVector(upW, -0.05)], 0.085, copper(), 6);
-    this.scene.add(tailBare);
-    this.register('tail', tailBare);
+    const tailRoute = [t0, ...pulledWps.map((w, i) => w.lerp(FIT_TAIL[i], e)), C, I];
     const tailCurve = new THREE.CatmullRomCurve3(tailRoute, false, 'centripetal');
-    this.anchor('tail', this.scene, tailCurve.getPointAt(0.55));
+    this.tailMesh.geometry.dispose();
+    this.tailMesh.geometry = new THREE.TubeGeometry(tailCurve, 120, 0.15, 10, false);
+    this.tailBareMesh.geometry.dispose();
+    this.tailBareMesh.geometry = new THREE.TubeGeometry(
+      new THREE.CatmullRomCurve3([I, tailEntry.clone().addScaledVector(upW, -0.05)], false, 'centripetal'),
+      6,
+      0.085,
+      10,
+      false,
+    );
+    this.tailAnchorObj.position.copy(tailCurve.getPointAt(0.55));
   }
+
+  private applyScrew() {
+    for (const head of this.screwHeads) {
+      head.rotation.z = this.screw * Math.PI * 4; // two full turns
+      head.position.z = 0.37 - this.screw * 0.07;
+    }
+  }
+
+  /** Advance the fit/unfit animation: plate moves first, then the screws turn (reverse on the way out). */
+  private stepFit(dt: number) {
+    const rate = this.reduced ? 12 : 1;
+    const before = this.fitState();
+    if (this.fitWanted) {
+      if (this.fit < 1) {
+        this.fit = Math.min(1, this.fit + (dt * rate) / 1.5);
+        this.setFit(this.fit);
+      } else if (this.screw < 1) {
+        this.screw = Math.min(1, this.screw + (dt * rate) / 0.9);
+        this.applyScrew();
+      }
+    } else if (this.screw > 0) {
+      this.screw = Math.max(0, this.screw - (dt * rate) / 0.9);
+      this.applyScrew();
+    } else if (this.fit > 0) {
+      this.fit = Math.max(0, this.fit - (dt * rate) / 1.5);
+      this.setFit(this.fit);
+    }
+    if (this.fitState() !== before) this.onWiringChange();
+  }
+
+  private fitState(): 'off' | 'fitting' | 'fitted' | 'removing' {
+    if (this.fitWanted) return this.fit >= 1 && this.screw >= 1 ? 'fitted' : 'fitting';
+    return this.fit <= 0 && this.screw <= 0 ? 'off' : 'removing';
+  }
+
 
   /* ------------------------------ interaction ------------------------------ */
 
@@ -763,6 +899,8 @@ export class SocketScene {
         m.emissiveIntensity = intensity;
       });
     }
+
+    this.stepFit(dt);
 
     // Hovered loose cores lift out of the cable; the rest settle back.
     if (this.mode === 'wire') {

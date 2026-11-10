@@ -646,3 +646,18 @@ h1 {
   color: var(--ink-soft);
   font-size: 15px;
 }
+
+.wire-note {
+  align-self: center;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+.primary:disabled,
+.ghost:disabled,
+.chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.wire-actions {
+  margin-top: 12px;
+}

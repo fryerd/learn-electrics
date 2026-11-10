@@ -35,7 +35,8 @@ export function initWirePanel(scene: SocketScene): WirePanel {
   let scheme: ColourScheme = 'current';
 
   const render = () => {
-    const { assignments, active } = scene.getWiring();
+    const { assignments, active, fit } = scene.getWiring();
+    const locked = fit !== 'off'; // cores can't be moved while the faceplate is on (or moving)
     const names = NAME[scheme];
 
     const onTerminal = (t: WireId) => WIRE_IDS.find((c) => assignments[c] === t) ?? null;
@@ -43,7 +44,7 @@ export function initWirePanel(scene: SocketScene): WirePanel {
     const conductors = WIRE_IDS.map((id) => {
       const at = assignments[id];
       const state = active === id ? 'Choose a terminal' : at ? `On ${LETTER[at]}` : 'Loose';
-      return `<button type="button" class="chip" data-act="pick" data-wire="${id}" aria-pressed="${active === id}">
+      return `<button type="button" class="chip" data-act="pick" data-wire="${id}" aria-pressed="${active === id}" ${locked ? 'disabled' : ''}>
         <span class="swatch" style="background:${SWATCH[scheme][id]}"></span>
         <span><b>${names[id]}</b><small>${state}</small></span>
       </button>`;
@@ -52,7 +53,7 @@ export function initWirePanel(scene: SocketScene): WirePanel {
     const terminals = WIRE_IDS.map((t) => {
       const who = onTerminal(t);
       const level = who ? LEVEL_CLASS[faultFor(who, t).level] : '';
-      return `<button type="button" class="chip term ${level}" data-act="place" data-wire="${t}" ${active ? '' : 'aria-disabled="true"'}>
+      return `<button type="button" class="chip term ${level}" data-act="place" data-wire="${t}" ${locked ? 'disabled' : active ? '' : 'aria-disabled="true"'}>
         <span class="letter">${LETTER[t]}</span>
         <span><b>Terminal ${LETTER[t]}</b><small>${who ? names[who] : 'Empty'}</small></span>
       </button>`;
@@ -75,6 +76,19 @@ export function initWirePanel(scene: SocketScene): WirePanel {
         ? '<p class="wire-summary ok">All three are right.</p>'
         : `<p class="wire-summary bad">${swap ?? 'Not right yet.'} Pick up the red or amber cores and move them.</p>`;
     }
+    let fitMsg = '';
+    if (fit === 'fitted') {
+      fitMsg = allRight
+        ? '<p class="wire-summary ok">Job done: the faceplate is screwed on. Next up: testing it with a meter (coming soon).</p>'
+        : '<p class="wire-summary bad">Fitted, but with a wiring fault, so this socket would fail testing. Take the faceplate off to fix it.</p>';
+    }
+    let fitButton = '';
+    if (fit === 'fitted') fitButton = '<button type="button" class="ghost" data-act="unfit">Take the faceplate off</button>';
+    else if (fit === 'fitting') fitButton = '<button type="button" class="primary" disabled>Fitting&hellip;</button>';
+    else if (fit === 'removing') fitButton = '<button type="button" class="ghost" disabled>Taking it off&hellip;</button>';
+    else fitButton = `<button type="button" class="primary" data-act="fit" ${connected === 3 ? '' : 'disabled'}>Fit the faceplate</button>`;
+    const fitHint = fit === 'off' && connected < 3 ? '<span class="wire-note">Connect all three cores first.</span>' : '';
+
     const empty = connected === 0 ? '<p class="wire-hint">Connect a core and you will see straight away whether it is right.</p>' : '';
 
     root.innerHTML = `
@@ -87,9 +101,11 @@ export function initWirePanel(scene: SocketScene): WirePanel {
         <div class="wire-group"><div class="wire-label">Terminals</div>${terminals}</div>
       </div>
       <div class="wire-actions">
-        <button type="button" class="ghost" data-act="reset">Start again</button>
+        ${fitButton}
+        <button type="button" class="ghost" data-act="reset" ${fit === 'off' ? '' : 'disabled'}>Start again</button>
+        ${fitHint}
       </div>
-      <div class="wire-feedback" aria-live="polite">${empty}<ul class="wire-results">${rows}</ul>${summary}</div>
+      <div class="wire-feedback" aria-live="polite">${fitMsg}${empty}<ul class="wire-results">${rows}</ul>${summary}</div>
       <button type="button" class="ghost soon" disabled>Test it with the meter (coming soon)</button>`;
   };
 
@@ -106,6 +122,12 @@ export function initWirePanel(scene: SocketScene): WirePanel {
         break;
       case 'reset':
         scene.resetWiring();
+        break;
+      case 'fit':
+        scene.setFitted(true);
+        break;
+      case 'unfit':
+        scene.setFitted(false);
         break;
     }
   });
