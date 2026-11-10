@@ -116,6 +116,16 @@ export function initWirePanel(scene: SocketScene): WirePanel {
     }
   });
 
+  // Hovering (or focusing) a core in the list lifts it in the 3D view too.
+  const hoverFrom = (e: Event) => {
+    const btn = (e.target as HTMLElement).closest<HTMLElement>('button[data-act="pick"]');
+    scene.setHoverConductor(btn ? (btn.dataset.wire as WireId) : null);
+  };
+  root.addEventListener('mouseover', hoverFrom);
+  root.addEventListener('focusin', hoverFrom);
+  root.addEventListener('mouseout', () => scene.setHoverConductor(null));
+  root.addEventListener('focusout', () => scene.setHoverConductor(null));
+
   // Any change to the wiring clears an old "check" result.
   scene.onWiringChange = () => {
     checked = false;

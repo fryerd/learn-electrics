@@ -47,6 +47,8 @@ interface Conductor {
   bare: THREE.Mesh;
   /** Invisible, fatter copy of the core so it is easy to click. */
   hit: THREE.Mesh;
+  /** 0 = resting, 1 = lifted out of the cable (hover). Only affects loose cores. */
+  lift: number;
 }
 
 interface TerminalInfo {
@@ -107,6 +109,8 @@ export class SocketScene {
   private terminalMats = new Map<WireId, THREE.MeshStandardMaterial[]>();
   private assignments: Assignments = { line: null, neutral: null, earth: null };
   private activeConductor: WireId | null = null;
+  private hoverConductor: WireId | null = null;
+  private hoverTerminal: WireId | null = null;
   private sheathEnd = new THREE.Vector3();
   private tEnd = new THREE.Vector3();
   private n1 = new THREE.Vector3();
@@ -279,6 +283,11 @@ export class SocketScene {
     this.onWiringChange();
   }
 
+  /** Hover a core from outside the 3D view (e.g. the panel list). */
+  setHoverConductor(id: WireId | null) {
+    this.hoverConductor = id;
+  }
+
   resetWiring() {
     if (this.mode !== 'wire') return;
     this.activeConductor = null;
@@ -311,9 +320,9 @@ export class SocketScene {
       // Loose: the core hangs free, fanned out so you can see and pick each one.
       const spread = c.id === 'line' ? -1 : c.id === 'neutral' ? 0 : 1;
       const F = B.clone()
-        .addScaledVector(this.tEnd, 2.2)
-        .addScaledVector(this.n1, spread * 2.0)
-        .add(new THREE.Vector3(0, -0.9, 0));
+        .addScaledVector(this.tEnd, 2.2 + c.lift * 1.5)
+        .addScaledVector(this.n1, spread * (2.0 + c.lift * 0.5))
+        .add(new THREE.Vector3(0, -0.9 + c.lift * 1.0, 0));
       const M = B.clone().lerp(F, 0.5).add(new THREE.Vector3(0, 0.15, 0));
       const tip = F.clone().add(F.clone().sub(M).normalize().multiplyScalar(0.55));
       return { ins: [A, B, M, F], bare: [F, tip] };
@@ -613,7 +622,7 @@ export class SocketScene {
       hit.userData.wire = id;
       this.scene.add(hit);
       this.wirePickables.push(hit);
-      const c: Conductor = { id, mat, off, ins, bare, hit };
+      const c: Conductor = { id, mat, off, ins, bare, hit, lift: 0 };
       this.conductors.set(id, c);
     }
     this.setAssignments({ line: 'line', neutral: 'neutral', earth: 'earth' });
@@ -642,6 +651,24 @@ export class SocketScene {
     let down: { x: number; y: number } | null = null;
     el.addEventListener('pointerdown', (e) => {
       down = { x: e.clientX, y: e.clientY };
+    });
+    el.addEventListener('pointermove', (e) => {
+      if (this.mode !== 'wire' || e.buttons !== 0) return;
+      const r = el.getBoundingClientRect();
+      const ndc = new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+      this.raycaster.setFromCamera(ndc, this.camera);
+      const hits = this.raycaster.intersectObjects([...this.pickables, ...this.wirePickables], false);
+      const kindOf = (h: THREE.Intersection) => h.object.userData.kind as string | undefined;
+      const terminal = this.activeConductor ? hits.find((h) => kindOf(h) === 'terminal') : undefined;
+      const conductor = terminal ? undefined : hits.find((h) => kindOf(h) === 'conductor');
+      this.hoverTerminal = terminal ? (terminal.object.userData.wire as WireId) : null;
+      this.hoverConductor = conductor ? (conductor.object.userData.wire as WireId) : null;
+      el.style.cursor = terminal || conductor ? 'pointer' : '';
+    });
+    el.addEventListener('pointerleave', () => {
+      this.hoverTerminal = null;
+      this.hoverConductor = null;
+      el.style.cursor = '';
     });
     el.addEventListener('pointerup', (e) => {
       if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 5) return;
@@ -708,6 +735,19 @@ export class SocketScene {
       });
     }
 
+    // Hovered loose cores lift out of the cable; the rest settle back.
+    if (this.mode === 'wire') {
+      for (const c of this.conductors.values()) {
+        const target = this.hoverConductor === c.id && this.assignments[c.id] === null ? 1 : 0;
+        let next = this.reduced ? target : c.lift + (target - c.lift) * Math.min(1, dt * 12);
+        if (Math.abs(target - next) < 0.003) next = target;
+        if (next !== c.lift) {
+          c.lift = next;
+          if (this.assignments[c.id] === null) this.rebuildConductor(c);
+        }
+      }
+    }
+
     if (this.mode === 'wire' && this.activeConductor) {
       const pulse = this.reduced ? 0.4 : 0.3 + 0.2 * Math.sin(t * 4);
       const mat = this.conductors.get(this.activeConductor)!.mat;
@@ -719,6 +759,20 @@ export class SocketScene {
           m.emissiveIntensity = pulse * 0.8;
         }),
       );
+    }
+
+    if (this.mode === 'wire') {
+      if (this.hoverConductor && this.hoverConductor !== this.activeConductor) {
+        const m = this.conductors.get(this.hoverConductor)!.mat;
+        m.emissive.set(0xe8742a);
+        m.emissiveIntensity = 0.3;
+      }
+      if (this.hoverTerminal && this.activeConductor) {
+        this.terminalMats.get(this.hoverTerminal)?.forEach((m) => {
+          m.emissive.set(0xe8742a);
+          m.emissiveIntensity = 0.85;
+        });
+      }
     }
 
     this.renderer.render(this.scene, this.camera);
