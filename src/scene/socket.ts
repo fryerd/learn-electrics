@@ -491,6 +491,24 @@ export class SocketScene {
     p.add(body);
     this.register('faceplate', body);
 
+    // The three rectangular pin slots on the front face (BS 1363): earth on top,
+    // line (bottom right) and neutral (bottom left), seen from the front.
+    const rimMat = std(0xd2cfc3, { roughness: 0.6 });
+    const holeMat = new THREE.MeshStandardMaterial({ color: 0x15171a, roughness: 0.95 });
+    const slots: [number, number, number, number][] = [
+      [0, 1.15, 0.42, 0.82], // earth
+      [1.11, -1.0, 0.42, 0.66], // line
+      [-1.11, -1.0, 0.42, 0.66], // neutral
+    ];
+    for (const [x, y, w, h] of slots) {
+      const rim = new THREE.Mesh(new THREE.BoxGeometry(w + 0.16, h + 0.16, 0.04), rimMat);
+      rim.position.set(x, y, 0.3);
+      p.add(rim);
+      const hole = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.05), holeMat);
+      hole.position.set(x, y, 0.315);
+      p.add(hole);
+    }
+
     // Fixing screws poking through the rear.
     for (const s of [1, -1]) {
       const screw = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 1.8, 14).rotateX(Math.PI / 2), brass());
@@ -630,10 +648,20 @@ export class SocketScene {
     const tailEntry = toWorld(0.25, 1.55 + 0.6, REAR_Z - 0.55);
     const t0 = new THREE.Vector3(-2.8, -1.0, -D / 2 + T + 0.3);
     const t1 = new THREE.Vector3(-2.8, -0.8, 2.2);
-    const q = toWorld(3.4, 2.6, -4.2);
     const I = tailEntry.clone().addScaledVector(upW, 0.45);
     const C = I.clone().addScaledVector(upW, 1.1);
-    const tailRoute = [t0, t1, t1.clone().lerp(q, 0.5).add(new THREE.Vector3(0, 0, 0.8)), q, C, I];
+    // The box sits behind the plate, so the tail has to travel round the plate's lower-left edge
+    // (outside its footprint) to reach the earth terminal on the near side: never through it.
+    const tailRoute = [
+      t0,
+      t1,
+      toWorld(-5.6, -5.8, -2.8),
+      toWorld(-4.9, -3.0, -3.8),
+      toWorld(-4.2, 0.8, -3.7),
+      toWorld(-2.4, 3.1, -3.6),
+      C,
+      I,
+    ];
     const tail = tube(tailRoute, 0.15, sleeveTail, 120);
     this.scene.add(tail);
     this.register('tail', tail);
