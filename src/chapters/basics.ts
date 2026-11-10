@@ -1,5 +1,6 @@
 import { basics, presets, quiz } from '../data/basics-lesson';
 import { mountQuiz } from '../ui/quiz';
+import type { ChapterMount } from './types';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -19,9 +20,7 @@ const WATER_MAX = 225;
 const DOTS = 26;
 
 /** Chapter 1: electricity basics. A water-pipe animation driven by voltage and resistance sliders. */
-export function mountBasics(onComplete: () => void) {
-  const stage = document.getElementById('stage-basics')!;
-  const panel = document.getElementById('panel-basics')!;
+export const mount: ChapterMount = ({ stage, panel, complete: onComplete }) => {
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   let volts = 230;
@@ -254,4 +253,4 @@ export function mountBasics(onComplete: () => void) {
       cancelAnimationFrame(raf);
     },
   };
-}
+};

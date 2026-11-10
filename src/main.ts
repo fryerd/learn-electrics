@@ -5,58 +5,90 @@ import './style.css';
 
 import { DEFAULT_CHAPTER, chapterById } from './data/chapters';
 import { markDone } from './progress';
-import { mountBasics } from './chapters/basics';
-import { mountSocket } from './chapters/socket';
-import { mountSoon } from './chapters/soon';
+import { loaders } from './chapters/registry';
+import { renderSoon } from './chapters/soon';
+import type { ChapterContext, ChapterInstance } from './chapters/types';
 import { initStrip } from './ui/strip';
 
-// Each chapter mounts lazily the first time it is opened, and is paused while hidden.
-interface Mounted {
-  activate(): void;
-  deactivate(): void;
+// Every chapter gets its own stage pane and panel pane. They are created the first time the chapter is
+// opened, then simply shown and hidden. The socket chapter's panes are written in index.html.
+
+interface Slot {
+  ctx: ChapterContext;
+  instance?: ChapterInstance;
 }
 
-type Pane = 'socket' | 'basics' | 'soon';
-const PANES: Pane[] = ['socket', 'basics', 'soon'];
+const stageRoot = document.getElementById('stage')!;
+const panelRoot = document.querySelector('.panel')!;
+const slots = new Map<string, Slot>();
+let activeId: string | null = null;
+let navToken = 0;
 
-const paneFor = (id: string): Pane => (id === 'sockets' ? 'socket' : id === 'basics' ? 'basics' : 'soon');
-
-const mounted = new Map<Pane, Mounted>();
-const soon = mountSoon();
-let activePane: Pane | null = null;
-
-function mount(pane: Pane): Mounted {
-  let m = mounted.get(pane);
-  if (!m) {
-    if (pane === 'socket') m = mountSocket(() => markDone('sockets'));
-    else if (pane === 'basics') m = mountBasics(() => markDone('basics'));
-    else m = { activate() {}, deactivate() {} };
-    mounted.set(pane, m);
+function slotFor(id: string): Slot {
+  let slot = slots.get(id);
+  if (slot) return slot;
+  let stage: HTMLElement;
+  let panel: HTMLElement;
+  if (id === 'sockets') {
+    stage = document.getElementById('stage-socket')!;
+    panel = document.getElementById('panel-socket')!;
+  } else {
+    stage = document.createElement('div');
+    stage.className = 'stage-pane';
+    stage.id = `stage-${id}`;
+    stage.hidden = true;
+    stageRoot.append(stage);
+    panel = document.createElement('div');
+    panel.className = 'panel-pane';
+    panel.id = `panel-${id}`;
+    panel.hidden = true;
+    panelRoot.append(panel);
   }
-  return m;
+  slot = { ctx: { stage, panel, complete: () => markDone(id) } };
+  slots.set(id, slot);
+  return slot;
 }
 
 const strip = initStrip((id) => {
   location.hash = `#/${id}`;
 });
 
-function show(id: string) {
-  const chapter = chapterById(id) ?? chapterById(DEFAULT_CHAPTER)!;
-  const pane = paneFor(chapter.id);
+async function show(requested: string) {
+  const chapter = chapterById(requested) ?? chapterById(DEFAULT_CHAPTER)!;
+  const token = ++navToken;
+  const slot = slotFor(chapter.id);
 
-  if (activePane && activePane !== pane) mounted.get(activePane)?.deactivate();
-  for (const p of PANES) {
-    document.getElementById(`stage-${p}`)!.hidden = p !== pane;
-    document.getElementById(`panel-${p}`)!.hidden = p !== pane;
+  // Show this chapter's panes straight away (a chapter that is still loading just looks empty for a moment).
+  for (const [id, s] of slots) {
+    s.ctx.stage.hidden = id !== chapter.id;
+    s.ctx.panel.hidden = id !== chapter.id;
   }
-  if (pane === 'soon') soon.show(chapter);
-  mount(pane).activate();
-  activePane = pane;
-
   strip.setCurrent(chapter.id);
   document.title = `${chapter.n}. ${chapter.title} · Learn Electrics`;
+
+  if (!slot.instance) {
+    const loader = loaders[chapter.id];
+    if (loader) {
+      try {
+        const mod = await loader();
+        if (token !== navToken) return; // the learner moved on while this was loading
+        slot.instance = mod.mount(slot.ctx);
+      } catch (err) {
+        console.error(`Could not load chapter "${chapter.id}"`, err);
+        renderSoon(slot.ctx, chapter);
+        slot.instance = { activate() {}, deactivate() {} };
+      }
+    } else {
+      renderSoon(slot.ctx, chapter);
+      slot.instance = { activate() {}, deactivate() {} };
+    }
+  }
+
+  if (activeId && activeId !== chapter.id) slots.get(activeId)?.instance?.deactivate();
+  slot.instance.activate();
+  activeId = chapter.id;
 }
 
 const fromHash = () => location.hash.replace(/^#\/?/, '') || DEFAULT_CHAPTER;
-window.addEventListener('hashchange', () => show(fromHash()));
-show(fromHash());
+window.addEventListener('hashchange', () => void show(fromHash()));
+void show(fromHash());
