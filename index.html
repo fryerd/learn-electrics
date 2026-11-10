@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Learn Electrics · The UK socket</title>
+    <meta
+      name="description"
+      content="An interactive 3D look inside a UK 13 A socket: terminals, cable colours, earthing and a short quiz. A personal educational project."
+    />
+    <meta name="theme-color" content="#f3ecdc" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <svg class="logo" viewBox="0 0 40 40" aria-hidden="true">
+            <rect x="3" y="3" width="34" height="34" rx="8" fill="none" stroke="currentColor" stroke-width="3" />
+            <path d="M22 8 13 22h7l-2 10 9-14h-7z" fill="currentColor" />
+          </svg>
+          <div>
+            <h1>Learn Electrics</h1>
+            <p class="tagline">Explore · Understand · Wire safely</p>
+          </div>
+        </div>
+        <div class="chip" id="lesson-chip">Lesson 1 · The socket outlet</div>
+      </header>
+
+      <main class="stage" aria-label="Interactive 3D socket">
+        <div class="canvas-host" id="canvas-host"></div>
+        <div class="hotspots" id="hotspots"></div>
+        <div class="hint" id="hint">Drag to orbit · Scroll to zoom · Tap a number</div>
+        <div class="toolbar" role="toolbar" aria-label="View controls">
+          <button id="btn-reset" type="button" title="Reset view">Reset view</button>
+          <button id="btn-rotate" type="button" aria-pressed="false" title="Slowly rotate the scene">Auto-rotate</button>
+          <button id="btn-colours" type="button" aria-pressed="false" title="Show pre-2004 cable colours">
+            Older colours
+          </button>
+        </div>
+      </main>
+
+      <aside class="panel" aria-label="Lesson panel">
+        <div class="tabs" role="tablist">
+          <button id="tab-parts" role="tab" aria-selected="true" aria-controls="view-parts">Parts</button>
+          <button id="tab-quiz" role="tab" aria-selected="false" aria-controls="view-quiz">Quiz</button>
+        </div>
+        <section id="view-parts" role="tabpanel" aria-labelledby="tab-parts"></section>
+        <section id="view-quiz" role="tabpanel" aria-labelledby="tab-quiz" hidden></section>
+      </aside>
+
+      <footer class="disclaimer">
+        <p>
+          <strong>For personal interest only.</strong> This is an educational project, not a substitute for qualified
+          training or a guide to carrying out electrical work. Electrical work must be done by a competent person, and
+          much domestic work in England and Wales is notifiable under Part P of the Building Regulations. Content is
+          based on UK practice (BS 7671:2018, the 18th Edition, and BS 1363) and may be out of date, so always check
+          the current regulations.
+        </p>
+      </footer>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

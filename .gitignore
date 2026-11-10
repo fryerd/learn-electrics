@@ -1,0 +1,13 @@
+node_modules
+dist
+.DS_Store
+*.log
+.vercel
+.env*
+
+# Personal / third-party material: never committed (copyright + privacy).
+# Drop course slides, note photos and practical-wiring photos in private/.
+private/
+video/
+Electrical Beginners Guide.pdf
+Electrical_basics_duo_layout.html

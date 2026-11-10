@@ -1,0 +1,576 @@
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import type { PartId } from '../data/socket-lesson';
+
+export type ColourScheme = 'current' | 'legacy';
+
+export interface ProjectedAnchor {
+  id: PartId;
+  x: number;
+  y: number;
+  visible: boolean;
+  occluded: boolean;
+}
+
+// 1 scene unit = 10 mm.
+const W = 8.6; // back box / faceplate width and height (86 mm)
+const D = 3.5; // back box depth (35 mm)
+const T = 0.12; // box wall thickness
+const REAR_Z = -2.7; // plate-local z of the socket body's rear face
+const CABLE_X = 1.8;
+
+const COLOURS = {
+  brown: 0x6b3f1d,
+  blue: 0x1f5fbf,
+  red: 0xc6281d,
+  black: 0x161616,
+};
+
+interface PartEntry {
+  meshes: THREE.Mesh[];
+  mats: Set<THREE.MeshStandardMaterial>;
+}
+
+function std(color: number, opts: THREE.MeshStandardMaterialParameters = {}) {
+  return new THREE.MeshStandardMaterial({ color, roughness: 0.5, ...opts });
+}
+
+function brass() {
+  return std(0xc9a54a, { metalness: 0.85, roughness: 0.32 });
+}
+
+function copper() {
+  return std(0xc8743a, { metalness: 0.9, roughness: 0.3 });
+}
+
+function stripedTexture() {
+  const c = document.createElement('canvas');
+  c.width = 8;
+  c.height = 64;
+  const g = c.getContext('2d')!;
+  const bands = ['#2f9e4f', '#f2c40f', '#2f9e4f', '#f2c40f'];
+  bands.forEach((col, i) => {
+    g.fillStyle = col;
+    g.fillRect(0, (i * 64) / 4, 8, 64 / 4);
+  });
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+function letterMaterial(ch: string) {
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const g = c.getContext('2d')!;
+  g.fillStyle = '#3a3a36';
+  g.font = '700 92px Arial, sans-serif';
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.fillText(ch, 64, 70);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return new THREE.MeshBasicMaterial({ map: t, transparent: true });
+}
+
+export class SocketScene {
+  onSelect: (id: PartId | null) => void = () => {};
+  onFrame: (anchors: ProjectedAnchor[]) => void = () => {};
+
+  private host: HTMLElement;
+  private renderer: THREE.WebGLRenderer;
+  private scene = new THREE.Scene();
+  private camera = new THREE.PerspectiveCamera(35, 1, 0.1, 200);
+  private controls: OrbitControls;
+  private raycaster = new THREE.Raycaster();
+  private parts = new Map<PartId, PartEntry>();
+  private anchors = new Map<PartId, THREE.Object3D>();
+  private pickables: THREE.Mesh[] = [];
+  private selected: PartId | null = null;
+  private plate = new THREE.Group();
+  private reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  private liveMat = std(COLOURS.brown, { roughness: 0.45 });
+  private neutralMat = std(COLOURS.blue, { roughness: 0.45 });
+
+  private defaultPos = new THREE.Vector3(9, 7, 35);
+  private defaultTarget = new THREE.Vector3(-3.2, 0.2, 4);
+  private tween: {
+    t: number;
+    fromPos: THREE.Vector3;
+    toPos: THREE.Vector3;
+    fromTarget: THREE.Vector3;
+    toTarget: THREE.Vector3;
+  } | null = null;
+  private lastTime = 0;
+
+  constructor(host: HTMLElement) {
+    this.host = host;
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFShadowMap;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.05;
+    this.renderer.domElement.style.display = 'block';
+    this.renderer.domElement.style.width = '100%';
+    this.renderer.domElement.style.height = '100%';
+    host.appendChild(this.renderer.domElement);
+
+    const pmrem = new THREE.PMREMGenerator(this.renderer);
+    this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    this.scene.environmentIntensity = 0.55;
+
+    const key = new THREE.DirectionalLight(0xffffff, 2.2);
+    key.position.set(10, 16, 18);
+    key.castShadow = true;
+    key.shadow.mapSize.set(2048, 2048);
+    const sc = key.shadow.camera;
+    sc.left = -24;
+    sc.right = 24;
+    sc.top = 24;
+    sc.bottom = -24;
+    sc.near = 1;
+    sc.far = 80;
+    key.shadow.bias = -0.0004;
+    key.shadow.radius = 4;
+    this.scene.add(key);
+    this.scene.add(new THREE.HemisphereLight(0xfff4e0, 0xb9c4d6, 0.5));
+
+    // Invisible "wall" that only catches shadows.
+    const wall = new THREE.Mesh(
+      new THREE.PlaneGeometry(80, 60),
+      new THREE.ShadowMaterial({ opacity: 0.16 }),
+    );
+    wall.position.set(0, 0, -D / 2 - 0.05);
+    wall.receiveShadow = true;
+    this.scene.add(wall);
+
+    this.buildBackBox();
+    this.buildPlate();
+    this.buildCableAndConductors();
+
+    this.camera.position.copy(this.defaultPos);
+    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+    this.controls.target.copy(this.defaultTarget);
+    this.controls.enableDamping = true;
+    this.controls.minDistance = 10;
+    this.controls.maxDistance = 48;
+    this.controls.update();
+
+    this.bindPicking();
+    new ResizeObserver(() => this.resize()).observe(host);
+    this.resize();
+    this.renderer.setAnimationLoop((t) => this.tick(t));
+  }
+
+  /* ------------------------------ public API ------------------------------ */
+
+  select(id: PartId | null) {
+    this.selected = id;
+    if (id && this.anchors.has(id)) {
+      const p = new THREE.Vector3();
+      this.anchors.get(id)!.getWorldPosition(p);
+      const target = this.defaultTarget.clone().lerp(p, 0.45);
+      this.flyTo(this.camera.position.clone(), target);
+    }
+  }
+
+  resetView() {
+    this.selected = null;
+    this.flyTo(this.defaultPos.clone(), this.defaultTarget.clone());
+  }
+
+  setAutoRotate(on: boolean) {
+    this.controls.autoRotate = on && !this.reduced;
+    this.controls.autoRotateSpeed = 1.2;
+  }
+
+  setColourScheme(scheme: ColourScheme) {
+    this.liveMat.color.set(scheme === 'current' ? COLOURS.brown : COLOURS.red);
+    this.neutralMat.color.set(scheme === 'current' ? COLOURS.blue : COLOURS.black);
+  }
+
+  /* ------------------------------- building ------------------------------- */
+
+  private register(id: PartId, mesh: THREE.Mesh, pickable = true) {
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    mesh.userData.part = id;
+    let entry = this.parts.get(id);
+    if (!entry) {
+      entry = { meshes: [], mats: new Set() };
+      this.parts.set(id, entry);
+    }
+    entry.meshes.push(mesh);
+    if (mesh.material instanceof THREE.MeshStandardMaterial) entry.mats.add(mesh.material);
+    if (pickable) this.pickables.push(mesh);
+    return mesh;
+  }
+
+  private anchor(id: PartId, parent: THREE.Object3D, pos: THREE.Vector3) {
+    const o = new THREE.Object3D();
+    o.position.copy(pos);
+    parent.add(o);
+    this.anchors.set(id, o);
+  }
+
+  private buildBackBox() {
+    const g = new THREE.Group();
+    this.scene.add(g);
+    const metal = std(0xbfc5cc, { metalness: 0.85, roughness: 0.38 });
+    metal.side = THREE.DoubleSide;
+    const box = (w: number, h: number, d: number, x: number, y: number, z: number) => {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), metal);
+      m.position.set(x, y, z);
+      g.add(m);
+      this.register('backbox', m);
+    };
+    box(W, W, T, 0, 0, -D / 2 + T / 2); // back
+    box(W, T, D, 0, W / 2 - T / 2, 0); // top
+    box(T, W - 2 * T, D, -W / 2 + T / 2, 0, 0); // left
+    box(T, W - 2 * T, D, W / 2 - T / 2, 0, 0); // right
+
+    // Bottom wall with a hole for the cable.
+    const shape = new THREE.Shape();
+    shape.moveTo(-W / 2, -D / 2);
+    shape.lineTo(W / 2, -D / 2);
+    shape.lineTo(W / 2, D / 2);
+    shape.lineTo(-W / 2, D / 2);
+    shape.closePath();
+    const hole = new THREE.Path();
+    hole.absarc(CABLE_X, -0.6, 0.55, 0, Math.PI * 2, true);
+    shape.holes.push(hole);
+    const bg = new THREE.ExtrudeGeometry(shape, { depth: T, bevelEnabled: false, curveSegments: 28 });
+    bg.rotateX(Math.PI / 2);
+    bg.translate(0, -W / 2 + T, 0);
+    const bottom = new THREE.Mesh(bg, metal);
+    g.add(bottom);
+    this.register('backbox', bottom);
+
+    // Fixing lugs at 60.3 mm centres.
+    for (const s of [1, -1]) {
+      const lug = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 1.4, 20).rotateX(Math.PI / 2), metal);
+      lug.position.set(0, s * 3.015, -D / 2 + T + 0.7);
+      g.add(lug);
+      this.register('backbox', lug);
+      const dark = new THREE.Mesh(new THREE.CircleGeometry(0.14, 16), new THREE.MeshBasicMaterial({ color: 0x222222 }));
+      dark.position.set(0, s * 3.015, -D / 2 + T + 1.41);
+      g.add(dark);
+    }
+
+    // Knockouts (inner face) and cable grommet.
+    const ringMat = std(0x8d949c, { metalness: 0.8, roughness: 0.5 });
+    const discMat = std(0xaab1b8, { metalness: 0.8, roughness: 0.45 });
+    const knock = (x: number, y: number, z: number, rx: number, ry: number) => {
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.04, 8, 32), ringMat);
+      ring.position.set(x, y, z);
+      ring.rotation.set(rx, ry, 0);
+      g.add(ring);
+      this.register('knockout', ring);
+      const disc = new THREE.Mesh(new THREE.CircleGeometry(0.52, 28), discMat);
+      disc.material.side = THREE.DoubleSide;
+      disc.position.set(x, y, z);
+      disc.rotation.set(rx, ry, 0);
+      g.add(disc);
+      this.register('knockout', disc);
+    };
+    const inner = W / 2 - T - 0.012;
+    knock(-2.5, 0, -D / 2 + T + 0.012, 0, 0);
+    knock(2.5, 0, -D / 2 + T + 0.012, 0, 0);
+    knock(inner, 0, 0, 0, Math.PI / 2);
+    knock(-inner, 0, 0, 0, Math.PI / 2);
+    knock(0, inner, 0, Math.PI / 2, 0);
+
+    const grommet = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.1, 10, 28), std(0x151515, { roughness: 0.8 }));
+    grommet.rotation.x = Math.PI / 2;
+    grommet.position.set(CABLE_X, -W / 2 + T + 0.02, -0.6);
+    g.add(grommet);
+    this.register('knockout', grommet);
+
+    // Earth screw on the back of the box.
+    const earthScrew = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.3, 20).rotateX(Math.PI / 2), brass());
+    earthScrew.position.set(-2.8, -1.0, -D / 2 + T + 0.15);
+    g.add(earthScrew);
+    this.register('tail', earthScrew);
+
+    this.anchor('backbox', g, new THREE.Vector3(W / 2, W / 2 - 0.4, D / 2));
+    this.anchor('knockout', g, new THREE.Vector3(W / 2, 0, 0));
+  }
+
+  private buildPlate() {
+    const p = this.plate;
+    p.position.set(-8.2, 4.2, 6.5);
+    p.rotation.set(0.15, Math.PI + 0.45, -0.1);
+    this.scene.add(p);
+
+    const plateMesh = new THREE.Mesh(new RoundedBoxGeometry(W, W, 0.6, 5, 0.28), std(0xf3f1ea, { roughness: 0.35 }));
+    p.add(plateMesh);
+    this.register('faceplate', plateMesh);
+
+    const body = new THREE.Mesh(new RoundedBoxGeometry(6.2, 5.2, 2.4, 4, 0.25), std(0xe4e0d3, { roughness: 0.45 }));
+    body.position.z = -1.5;
+    p.add(body);
+    this.register('faceplate', body);
+
+    // Fixing screws poking through the rear.
+    for (const s of [1, -1]) {
+      const screw = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 1.8, 14).rotateX(Math.PI / 2), brass());
+      screw.position.set(0, s * 3.015, -1.2);
+      p.add(screw);
+      this.register('screws', screw);
+      const tip = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.17, 0.2, 14).rotateX(Math.PI / 2), brass());
+      tip.position.set(0, s * 3.015, -2.2);
+      p.add(tip);
+      this.register('screws', tip);
+    }
+
+    const terminals: { id: 'live' | 'neutral' | 'earth'; x: number; y: number; letter: string; lx: number; ly: number }[] = [
+      { id: 'earth', x: 0, y: 1.55, letter: 'E', lx: 1.5, ly: 1.55 },
+      { id: 'live', x: 1.45, y: -1.0, letter: 'L', lx: 2.5, ly: -1.0 },
+      { id: 'neutral', x: -1.45, y: -1.0, letter: 'N', lx: -2.5, ly: -1.0 },
+    ];
+    const recess = new THREE.MeshBasicMaterial({ color: 0x55524a });
+    for (const t of terminals) {
+      const pocket = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.5, 0.06), recess);
+      pocket.position.set(t.x, t.y, REAR_Z - 0.02);
+      p.add(pocket);
+
+      const clamp = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.0), brass());
+      clamp.position.set(t.x, t.y, REAR_Z - 0.55);
+      p.add(clamp);
+      this.register(t.id, clamp);
+
+      const head = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.18, 22).rotateX(Math.PI / 2), brass());
+      head.position.set(t.x, t.y, REAR_Z - 1.1);
+      p.add(head);
+      this.register(t.id, head);
+      const slot = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.09, 0.06), std(0x3a3226, { roughness: 0.7 }));
+      slot.position.set(t.x, t.y, REAR_Z - 1.2);
+      p.add(slot);
+
+      const label = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.8), letterMaterial(t.letter));
+      label.position.set(t.lx, t.ly, REAR_Z - 0.012);
+      label.rotation.y = Math.PI;
+      p.add(label);
+
+      this.anchor(t.id, p, new THREE.Vector3(t.x, t.y, REAR_Z - 1.2));
+    }
+
+    this.anchor('faceplate', p, new THREE.Vector3(3.7, 2.4, -0.33));
+    this.anchor('screws', p, new THREE.Vector3(0, 3.015, -2.2));
+    p.updateMatrixWorld(true);
+  }
+
+  private buildCableAndConductors() {
+    const up = new THREE.Vector3(0, 1, 0);
+    const toWorld = (x: number, y: number, z: number) => this.plate.localToWorld(new THREE.Vector3(x, y, z));
+    const S = toWorld(0.5, -3.4, -5.8);
+
+    const pts = [
+      new THREE.Vector3(CABLE_X, -14, -1.5),
+      new THREE.Vector3(CABLE_X, -8.5, -0.6),
+      new THREE.Vector3(CABLE_X, -4.9, -0.6),
+      new THREE.Vector3(CABLE_X, -3.0, -0.5),
+      new THREE.Vector3(CABLE_X - 0.2, -0.8, 0.9),
+      new THREE.Vector3(0.8, 1.2, 3.0),
+    ];
+    const mid = pts[pts.length - 1].clone().lerp(S, 0.5).add(new THREE.Vector3(0, 1.0, 0.5));
+    pts.push(mid, S);
+    const cable = new THREE.CatmullRomCurve3(pts, false, 'centripetal');
+    const sheathMat = std(0xcfd2d4, { roughness: 0.55 });
+    const sheath = new THREE.Mesh(new THREE.TubeGeometry(cable, 240, 0.4, 16, false), sheathMat);
+    this.scene.add(sheath);
+    this.register('sheath', sheath);
+
+    const tEnd = cable.getTangentAt(1).normalize();
+    const cap = new THREE.Mesh(new THREE.CircleGeometry(0.4, 24), std(0xb7bbbe, { roughness: 0.7 }));
+    cap.position.copy(S).addScaledVector(tEnd, 0.001);
+    cap.lookAt(S.clone().add(tEnd));
+    this.scene.add(cap);
+    this.register('sheath', cap);
+    this.anchor('sheath', this.scene, cable.getPointAt(0.8));
+
+    const n1 = tEnd.clone().cross(up).normalize();
+    const n2 = tEnd.clone().cross(n1).normalize();
+    const startFor = (a: number, b: number) =>
+      S.clone().addScaledVector(n1, a).addScaledVector(n2, b);
+
+    const tube = (points: THREE.Vector3[], r: number, mat: THREE.Material, seg = 80) =>
+      new THREE.Mesh(
+        new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points, false, 'centripetal'), seg, r, 10, false),
+        mat,
+      );
+
+    const wire = (
+      id: PartId,
+      mat: THREE.Material,
+      a: THREE.Vector3,
+      via: THREE.Vector3[],
+      entry: THREE.Vector3,
+      dir: THREE.Vector3,
+    ) => {
+      const I = entry.clone().addScaledVector(dir, 0.45);
+      const C = I.clone().addScaledVector(dir, 1.1);
+      const A = a.clone().addScaledVector(tEnd, -0.15);
+      const B = a.clone().addScaledVector(tEnd, 0.9);
+      const route = [A, B, ...via, C, I];
+      const ins = tube(route, 0.15, mat, 120);
+      this.scene.add(ins);
+      this.register(id, ins);
+      const bare = tube([I, entry.clone().addScaledVector(dir, -0.05)], 0.085, copper(), 6);
+      this.scene.add(bare);
+      this.register(id, bare);
+      return ins;
+    };
+
+    const down = new THREE.Vector3(0, -1, 0).transformDirection(this.plate.matrixWorld);
+    const upW = new THREE.Vector3(0, 1, 0).transformDirection(this.plate.matrixWorld);
+
+    // Live and neutral approach their clamps from below.
+    for (const [id, mat, x, off] of [
+      ['live', this.liveMat, 1.45, -0.17],
+      ['neutral', this.neutralMat, -1.45, 0.17],
+    ] as const) {
+      const A = startFor(off, 0);
+      const entry = toWorld(x, -1.0 - 0.6, REAR_Z - 0.55);
+      const B = A.clone().addScaledVector(tEnd, 0.9);
+      const C = entry.clone().addScaledVector(down, 1.55);
+      wire(id, mat, A, [B.clone().lerp(C, 0.5)], entry, down);
+    }
+
+    // Earth: cable CPC and tail both enter the top of the earth clamp.
+    const sleeveMat = std(0xffffff, { roughness: 0.45 });
+    sleeveMat.map = stripedTexture();
+    const sleeveTail = sleeveMat.clone();
+    sleeveTail.map = sleeveMat.map;
+
+    const cpcA = startFor(0, 0.14);
+    const cpcEntry = toWorld(-0.25, 1.55 + 0.6, REAR_Z - 0.55);
+    wire(
+      'earth',
+      sleeveMat,
+      cpcA,
+      [toWorld(-3.5, -1.5, -4.6), toWorld(-3.0, 2.6, -4.0)],
+      cpcEntry,
+      upW,
+    );
+
+    const tailEntry = toWorld(0.25, 1.55 + 0.6, REAR_Z - 0.55);
+    const t0 = new THREE.Vector3(-2.8, -1.0, -D / 2 + T + 0.3);
+    const t1 = new THREE.Vector3(-2.8, -0.8, 2.2);
+    const q = toWorld(3.4, 2.6, -4.2);
+    const I = tailEntry.clone().addScaledVector(upW, 0.45);
+    const C = I.clone().addScaledVector(upW, 1.1);
+    const tailRoute = [t0, t1, t1.clone().lerp(q, 0.5).add(new THREE.Vector3(0, 0, 0.8)), q, C, I];
+    const tail = tube(tailRoute, 0.15, sleeveTail, 120);
+    this.scene.add(tail);
+    this.register('tail', tail);
+    const tailBare = tube([I, tailEntry.clone().addScaledVector(upW, -0.05)], 0.085, copper(), 6);
+    this.scene.add(tailBare);
+    this.register('tail', tailBare);
+    const tailCurve = new THREE.CatmullRomCurve3(tailRoute, false, 'centripetal');
+    this.anchor('tail', this.scene, tailCurve.getPointAt(0.55));
+  }
+
+  /* ------------------------------ interaction ------------------------------ */
+
+  private bindPicking() {
+    const el = this.renderer.domElement;
+    let down: { x: number; y: number } | null = null;
+    el.addEventListener('pointerdown', (e) => {
+      down = { x: e.clientX, y: e.clientY };
+    });
+    el.addEventListener('pointerup', (e) => {
+      if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 5) return;
+      const r = el.getBoundingClientRect();
+      const ndc = new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+      this.raycaster.setFromCamera(ndc, this.camera);
+      const hit = this.raycaster.intersectObjects(this.pickables, false)[0];
+      const id = (hit?.object.userData.part as PartId | undefined) ?? null;
+      this.onSelect(id);
+    });
+  }
+
+  private flyTo(pos: THREE.Vector3, target: THREE.Vector3) {
+    if (this.reduced) {
+      this.camera.position.copy(pos);
+      this.controls.target.copy(target);
+      return;
+    }
+    this.tween = {
+      t: 0,
+      fromPos: this.camera.position.clone(),
+      toPos: pos,
+      fromTarget: this.controls.target.clone(),
+      toTarget: target,
+    };
+  }
+
+  private resize() {
+    const w = this.host.clientWidth || 1;
+    const h = this.host.clientHeight || 1;
+    this.renderer.setSize(w, h, false);
+    const aspect = w / h;
+    this.camera.aspect = aspect;
+    // Keep the whole scene in view on tall (phone) screens.
+    const base = THREE.MathUtils.degToRad(35);
+    this.camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(base / 2) * Math.max(1, 1.2 / aspect)));
+    this.camera.updateProjectionMatrix();
+  }
+
+  private tick(time: number) {
+    const t = time / 1000;
+    const dt = Math.min(t - this.lastTime, 0.05);
+    this.lastTime = t;
+
+    if (this.tween) {
+      this.tween.t = Math.min(1, this.tween.t + dt / 0.7);
+      const k = 1 - Math.pow(1 - this.tween.t, 3);
+      this.camera.position.lerpVectors(this.tween.fromPos, this.tween.toPos, k);
+      this.controls.target.lerpVectors(this.tween.fromTarget, this.tween.toTarget, k);
+      if (this.tween.t >= 1) this.tween = null;
+    }
+    this.controls.update();
+
+    for (const [id, entry] of this.parts) {
+      const on = id === this.selected;
+      const intensity = on ? (this.reduced ? 0.4 : 0.3 + 0.2 * Math.sin(t * 4)) : 0;
+      entry.mats.forEach((m) => {
+        m.emissive.set(0xe8742a);
+        m.emissiveIntensity = intensity;
+      });
+    }
+
+    this.renderer.render(this.scene, this.camera);
+    this.onFrame(this.projectAnchors());
+  }
+
+  private projectAnchors(): ProjectedAnchor[] {
+    const w = this.host.clientWidth;
+    const h = this.host.clientHeight;
+    const out: ProjectedAnchor[] = [];
+    const wp = new THREE.Vector3();
+    const v = new THREE.Vector3();
+    for (const [id, a] of this.anchors) {
+      a.getWorldPosition(wp);
+      v.copy(wp).project(this.camera);
+      const visible = v.z < 1 && Math.abs(v.x) < 1.05 && Math.abs(v.y) < 1.05;
+      let occluded = false;
+      if (visible) {
+        const dir = wp.clone().sub(this.camera.position);
+        const dist = dir.length();
+        this.raycaster.set(this.camera.position, dir.normalize());
+        this.raycaster.far = dist;
+        const hit = this.raycaster
+          .intersectObjects(this.pickables, false)
+          .find((h) => h.object.userData.part !== id);
+        occluded = !!hit && hit.distance < dist - 0.35;
+        this.raycaster.far = Infinity;
+      }
+      out.push({ id, x: (v.x * 0.5 + 0.5) * w, y: (-v.y * 0.5 + 0.5) * h, visible, occluded });
+    }
+    return out;
+  }
+}
