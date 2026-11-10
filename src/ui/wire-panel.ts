@@ -1,7 +1,8 @@
 import type { ColourScheme, SocketScene, WireId } from '../scene/socket';
 import { WIRE_IDS } from '../scene/socket';
+import { faultFor, swapNote } from '../data/wiring-faults';
 
-// "Wire it" tab: Try (pick a core, pick a terminal) then Reveal (check my wiring).
+// "Wire it" tab: Try (pick a core, pick a terminal) with instant Reveal (what you just did, and why).
 
 const LETTER: Record<WireId, string> = { line: 'L', neutral: 'N', earth: 'E' };
 
@@ -23,13 +24,7 @@ const SWATCH: Record<ColourScheme, Record<WireId, string>> = {
   },
 };
 
-const ROLE: Record<WireId, string> = { line: 'line', neutral: 'neutral', earth: 'earth' };
-
-const WHY: Record<WireId, string> = {
-  line: 'It carries current from the supply to the appliance.',
-  neutral: 'It completes the circuit back to the supply.',
-  earth: 'It is the safety path that lets a fault trip the breaker.',
-};
+const LEVEL_CLASS = { ok: 'ok', warn: 'warn', danger: 'bad' } as const;
 
 export interface WirePanel {
   setScheme(scheme: ColourScheme): void;
@@ -38,7 +33,6 @@ export interface WirePanel {
 export function initWirePanel(scene: SocketScene): WirePanel {
   const root = document.getElementById('view-wire')!;
   let scheme: ColourScheme = 'current';
-  let checked = false;
 
   const render = () => {
     const { assignments, active } = scene.getWiring();
@@ -57,26 +51,31 @@ export function initWirePanel(scene: SocketScene): WirePanel {
 
     const terminals = WIRE_IDS.map((t) => {
       const who = onTerminal(t);
-      return `<button type="button" class="chip term" data-act="place" data-wire="${t}" ${active ? '' : 'aria-disabled="true"'}>
+      const level = who ? LEVEL_CLASS[faultFor(who, t).level] : '';
+      return `<button type="button" class="chip term ${level}" data-act="place" data-wire="${t}" ${active ? '' : 'aria-disabled="true"'}>
         <span class="letter">${LETTER[t]}</span>
         <span><b>Terminal ${LETTER[t]}</b><small>${who ? names[who] : 'Empty'}</small></span>
       </button>`;
     }).join('');
 
-    let feedback = '';
-    if (checked) {
-      const rows = WIRE_IDS.map((id) => {
-        const at = assignments[id];
-        if (at === null) return `<li class="bad"><b>${names[id]}</b>: not connected yet.</li>`;
-        if (at === id) {
-          return `<li class="ok"><b>${names[id]}</b> goes to ${LETTER[id]}. ${WHY[id]}</li>`;
-        }
-        return `<li class="bad"><b>${names[id]}</b> is the ${ROLE[id]} conductor, so it belongs on ${LETTER[id]}, not ${LETTER[at]}.</li>`;
-      }).join('');
-      const allRight = WIRE_IDS.every((id) => assignments[id] === id);
-      feedback = `<ul class="wire-results">${rows}</ul>
-        <p class="wire-summary ${allRight ? 'ok' : 'bad'}">${allRight ? 'All three are right.' : 'Not quite. Move the ones marked and check again.'}</p>`;
+    // Instant feedback: one line per connected core, as soon as it is connected.
+    const rows = WIRE_IDS.filter((id) => assignments[id] !== null)
+      .map((id) => {
+        const at = assignments[id]!;
+        const f = faultFor(id, at);
+        return `<li class="${LEVEL_CLASS[f.level]}"><b>${names[id]} on ${LETTER[at]}: ${f.title}.</b> ${f.text}</li>`;
+      })
+      .join('');
+    const connected = WIRE_IDS.filter((id) => assignments[id] !== null).length;
+    const allRight = WIRE_IDS.every((id) => assignments[id] === id);
+    const swap = swapNote(assignments);
+    let summary = '';
+    if (connected === 3) {
+      summary = allRight
+        ? '<p class="wire-summary ok">All three are right.</p>'
+        : `<p class="wire-summary bad">${swap ?? 'Not right yet.'} Pick up the red or amber cores and move them.</p>`;
     }
+    const empty = connected === 0 ? '<p class="wire-hint">Connect a core and you will see straight away whether it is right.</p>' : '';
 
     root.innerHTML = `
       <div class="detail">
@@ -88,10 +87,9 @@ export function initWirePanel(scene: SocketScene): WirePanel {
         <div class="wire-group"><div class="wire-label">Terminals</div>${terminals}</div>
       </div>
       <div class="wire-actions">
-        <button type="button" class="primary" data-act="check">Check my wiring</button>
         <button type="button" class="ghost" data-act="reset">Start again</button>
       </div>
-      <div class="wire-feedback" aria-live="polite">${feedback}</div>
+      <div class="wire-feedback" aria-live="polite">${empty}<ul class="wire-results">${rows}</ul>${summary}</div>
       <button type="button" class="ghost soon" disabled>Test it with the meter (coming soon)</button>`;
   };
 
@@ -105,10 +103,6 @@ export function initWirePanel(scene: SocketScene): WirePanel {
         break;
       case 'place':
         if (wire) scene.assignToTerminal(wire);
-        break;
-      case 'check':
-        checked = true;
-        render();
         break;
       case 'reset':
         scene.resetWiring();
@@ -126,11 +120,7 @@ export function initWirePanel(scene: SocketScene): WirePanel {
   root.addEventListener('mouseout', () => scene.setHoverConductor(null));
   root.addEventListener('focusout', () => scene.setHoverConductor(null));
 
-  // Any change to the wiring clears an old "check" result.
-  scene.onWiringChange = () => {
-    checked = false;
-    render();
-  };
+  scene.onWiringChange = render;
   render();
 
   return {

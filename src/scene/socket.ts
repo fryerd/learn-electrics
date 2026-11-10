@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import type { PartId } from '../data/socket-lesson';
+import { faultFor, type Level } from '../data/wiring-faults';
 
 export type ColourScheme = 'current' | 'legacy';
 export type SceneMode = 'explore' | 'wire';
@@ -773,6 +774,20 @@ export class SocketScene {
           c.lift = next;
           if (this.assignments[c.id] === null) this.rebuildConductor(c);
         }
+      }
+    }
+
+    // Terminals glow green, amber or red as soon as a core is connected to them.
+    if (this.mode === 'wire') {
+      const tint: Record<Level, number> = { ok: 0x2f9e4f, warn: 0xf0a020, danger: 0xe03a2f };
+      for (const id of WIRE_IDS) {
+        const terminal = this.assignments[id];
+        if (terminal === null) continue;
+        const colour = tint[faultFor(id, terminal).level];
+        this.terminalMats.get(terminal)?.forEach((m) => {
+          m.emissive.set(colour);
+          m.emissiveIntensity = 0.45;
+        });
       }
     }
 

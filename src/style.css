@@ -498,8 +498,17 @@ h1 {
   background: #fff;
   box-shadow: 0 0 0 3px rgba(31, 95, 191, 0.3);
 }
-.chip.term[aria-disabled='true'] {
+.chip.term[aria-disabled='true']:not(.ok):not(.warn):not(.bad) {
   opacity: 0.55;
+}
+.chip.term.ok {
+  border-color: var(--good);
+}
+.chip.term.warn {
+  border-color: #c9851a;
+}
+.chip.term.bad {
+  border-color: var(--bad);
 }
 .swatch {
   flex: none;
@@ -626,4 +635,14 @@ h1 {
   .cores {
     display: none;
   }
+}
+
+.wire-results li.warn {
+  border-left-color: #c9851a;
+  background: #fbf0d9;
+}
+.wire-hint {
+  margin: 12px 0 0;
+  color: var(--ink-soft);
+  font-size: 15px;
 }
