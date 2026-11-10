@@ -63,7 +63,8 @@ scene.onFrame = (anchors) => {
     if (!b) continue;
     b.classList.toggle('hidden', !a.visible);
     b.classList.toggle('occluded', a.occluded);
-    b.style.transform = `translate(${a.x.toFixed(1)}px, ${a.y.toFixed(1)}px)`;
+    b.style.setProperty('--x', `${a.x.toFixed(1)}px`);
+    b.style.setProperty('--y', `${a.y.toFixed(1)}px`);
   }
 };
 
