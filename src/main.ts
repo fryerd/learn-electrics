@@ -6,6 +6,7 @@ import './style.css';
 import { parts, type PartId } from './data/socket-lesson';
 import { SocketScene } from './scene/socket';
 import { initPanel } from './ui/panel';
+import { initWirePanel } from './ui/wire-panel';
 
 const host = document.getElementById('canvas-host')!;
 const hotspotLayer = document.getElementById('hotspots')!;
@@ -13,7 +14,26 @@ const hotspotLayer = document.getElementById('hotspots')!;
 const scene = new SocketScene(host);
 let current: PartId | null = null;
 
-const panel = initPanel((id) => choose(id));
+const wirePanel = initWirePanel(scene);
+const stage = document.querySelector('.stage')!;
+const hint = document.getElementById('hint')!;
+const EXPLORE_HINT = hint.textContent ?? '';
+
+const panel = initPanel(
+  (id) => choose(id),
+  (tab) => {
+    // The "Wire it" tab switches the 3D scene into hands-on mode; the other tabs return to exploring.
+    const wire = tab === 'wire';
+    scene.setMode(wire ? 'wire' : 'explore');
+    stage.classList.toggle('wire-mode', wire);
+    hint.textContent = wire ? 'Pick a core, then pick its terminal' : EXPLORE_HINT;
+    if (!wire) {
+      current = null;
+      panel.select(null);
+      hotspotButtons.forEach((b) => b.setAttribute('aria-pressed', 'false'));
+    }
+  },
+);
 
 function choose(id: PartId | null) {
   current = id === current ? null : id;
@@ -64,4 +84,7 @@ const toggle = (id: string, fn: (on: boolean) => void) => {
   });
 };
 toggle('btn-rotate', (on) => scene.setAutoRotate(on));
-toggle('btn-colours', (on) => scene.setColourScheme(on ? 'legacy' : 'current'));
+toggle('btn-colours', (on) => {
+  scene.setColourScheme(on ? 'legacy' : 'current');
+  wirePanel.setScheme(on ? 'legacy' : 'current');
+});

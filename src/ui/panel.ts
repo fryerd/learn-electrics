@@ -6,22 +6,28 @@ export interface Panel {
   select(id: PartId | null): void;
 }
 
-export function initPanel(onSelect: (id: PartId) => void): Panel {
+export type Tab = 'parts' | 'wire' | 'quiz';
+
+export function initPanel(onSelect: (id: PartId) => void, onTab: (tab: Tab) => void = () => {}): Panel {
   const viewParts = $('view-parts');
   const viewQuiz = $('view-quiz');
   const tabParts = $('tab-parts');
   const tabQuiz = $('tab-quiz');
 
   /* ------------------------------- tabs ------------------------------- */
-  const showTab = (which: 'parts' | 'quiz') => {
-    const isParts = which === 'parts';
-    tabParts.setAttribute('aria-selected', String(isParts));
-    tabQuiz.setAttribute('aria-selected', String(!isParts));
-    viewParts.hidden = !isParts;
-    viewQuiz.hidden = isParts;
+  const tabs: Record<Tab, { btn: HTMLElement; view: HTMLElement }> = {
+    parts: { btn: tabParts, view: viewParts },
+    wire: { btn: $('tab-wire'), view: $('view-wire') },
+    quiz: { btn: tabQuiz, view: viewQuiz },
   };
-  tabParts.addEventListener('click', () => showTab('parts'));
-  tabQuiz.addEventListener('click', () => showTab('quiz'));
+  const showTab = (which: Tab, notify = true) => {
+    for (const [key, { btn, view }] of Object.entries(tabs)) {
+      btn.setAttribute('aria-selected', String(key === which));
+      view.hidden = key !== which;
+    }
+    if (notify) onTab(which);
+  };
+  for (const key of Object.keys(tabs) as Tab[]) tabs[key].btn.addEventListener('click', () => showTab(key));
 
   /* ------------------------------- parts ------------------------------ */
   const detail = document.createElement('div');
@@ -54,7 +60,7 @@ export function initPanel(onSelect: (id: PartId) => void): Panel {
       <p>${p.short}</p>
       <ul>${p.points.map((x) => `<li>${x}</li>`).join('')}</ul>
       ${p.uk ? `<div class="uk"><b>UK standards</b>${p.uk}</div>` : ''}`;
-    showTab('parts');
+    showTab('parts', false);
   };
 
   /* ------------------------------- quiz ------------------------------- */

@@ -5,6 +5,11 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 import type { PartId } from '../data/socket-lesson';
 
 export type ColourScheme = 'current' | 'legacy';
+export type SceneMode = 'explore' | 'wire';
+/** The three conductors, and the three terminals they belong on (same names). */
+export type WireId = 'line' | 'neutral' | 'earth';
+export const WIRE_IDS: WireId[] = ['line', 'neutral', 'earth'];
+export type Assignments = Record<WireId, WireId | null>;
 
 export interface ProjectedAnchor {
   id: PartId;
@@ -31,6 +36,22 @@ const COLOURS = {
 interface PartEntry {
   meshes: THREE.Mesh[];
   mats: Set<THREE.MeshStandardMaterial>;
+}
+
+interface Conductor {
+  id: WireId;
+  mat: THREE.MeshStandardMaterial;
+  /** Offset of this core inside the cable end, along the cable's local axes. */
+  off: [number, number];
+  ins: THREE.Mesh;
+  bare: THREE.Mesh;
+  /** Invisible, fatter copy of the core so it is easy to click. */
+  hit: THREE.Mesh;
+}
+
+interface TerminalInfo {
+  entry: THREE.Vector3;
+  dir: THREE.Vector3;
 }
 
 function std(color: number, opts: THREE.MeshStandardMaterialParameters = {}) {
@@ -77,6 +98,21 @@ function letterMaterial(ch: string) {
 export class SocketScene {
   onSelect: (id: PartId | null) => void = () => {};
   onFrame: (anchors: ProjectedAnchor[]) => void = () => {};
+  /** Fired whenever the wire-it state changes (mode, selection or connections). */
+  onWiringChange: () => void = () => {};
+
+  private mode: SceneMode = 'explore';
+  private conductors = new Map<WireId, Conductor>();
+  private terminalInfo = new Map<WireId, TerminalInfo>();
+  private terminalMats = new Map<WireId, THREE.MeshStandardMaterial[]>();
+  private assignments: Assignments = { line: null, neutral: null, earth: null };
+  private activeConductor: WireId | null = null;
+  private sheathEnd = new THREE.Vector3();
+  private tEnd = new THREE.Vector3();
+  private n1 = new THREE.Vector3();
+  private n2 = new THREE.Vector3();
+  private zOut = new THREE.Vector3();
+  private cpcVia: THREE.Vector3[] = [];
 
   private host: HTMLElement;
   private renderer: THREE.WebGLRenderer;
@@ -87,6 +123,7 @@ export class SocketScene {
   private parts = new Map<PartId, PartEntry>();
   private anchors = new Map<PartId, THREE.Object3D>();
   private pickables: THREE.Mesh[] = [];
+  private wirePickables: THREE.Mesh[] = [];
   private selected: PartId | null = null;
   private plate = new THREE.Group();
   private reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -190,6 +227,137 @@ export class SocketScene {
   setColourScheme(scheme: ColourScheme) {
     this.lineMat.color.set(scheme === 'current' ? COLOURS.brown : COLOURS.red);
     this.neutralMat.color.set(scheme === 'current' ? COLOURS.blue : COLOURS.black);
+  }
+
+  /* ------------------------------- wire-it mode ------------------------------ */
+
+  setMode(mode: SceneMode) {
+    if (mode === this.mode) return;
+    this.mode = mode;
+    this.selected = null;
+    this.activeConductor = null;
+    if (mode === 'wire') this.setAssignments({ line: null, neutral: null, earth: null });
+    else this.setAssignments({ line: 'line', neutral: 'neutral', earth: 'earth' });
+    // Wire mode moves in closer to the plate; explore mode returns to the full view.
+    const wireTarget = this.defaultTarget.clone().add(new THREE.Vector3(-1.8, -0.9, 0));
+    const pos =
+      mode === 'wire'
+        ? wireTarget.clone().add(this.defaultPos.clone().sub(this.defaultTarget).multiplyScalar(0.78))
+        : this.defaultPos.clone();
+    this.flyTo(pos, mode === 'wire' ? wireTarget : this.defaultTarget.clone());
+    this.onWiringChange();
+  }
+
+  /** Pick up a conductor (detaching it if connected). Same one again puts it down. */
+  selectConductor(id: WireId | null) {
+    if (this.mode !== 'wire') return;
+    if (id !== null && id === this.activeConductor) {
+      this.activeConductor = null;
+    } else {
+      if (id !== null && this.assignments[id] !== null) {
+        this.assignments[id] = null;
+        this.rebuildConductor(this.conductors.get(id)!);
+      }
+      this.activeConductor = id;
+    }
+    this.onWiringChange();
+  }
+
+  /** Connect the picked-up conductor to a terminal (swapping out any occupant). */
+  assignToTerminal(terminal: WireId) {
+    const id = this.activeConductor;
+    if (this.mode !== 'wire' || id === null) return;
+    for (const other of WIRE_IDS) {
+      if (other !== id && this.assignments[other] === terminal) {
+        this.assignments[other] = null;
+        this.rebuildConductor(this.conductors.get(other)!);
+      }
+    }
+    this.assignments[id] = terminal;
+    this.rebuildConductor(this.conductors.get(id)!);
+    this.activeConductor = null;
+    this.onWiringChange();
+  }
+
+  resetWiring() {
+    if (this.mode !== 'wire') return;
+    this.activeConductor = null;
+    this.setAssignments({ line: null, neutral: null, earth: null });
+    this.onWiringChange();
+  }
+
+  getWiring(): { mode: SceneMode; assignments: Assignments; active: WireId | null } {
+    return { mode: this.mode, assignments: { ...this.assignments }, active: this.activeConductor };
+  }
+
+  private setAssignments(a: Assignments) {
+    this.assignments = { ...a };
+    for (const c of this.conductors.values()) this.rebuildConductor(c);
+  }
+
+  private startPoint(c: Conductor, along: number) {
+    return this.sheathEnd
+      .clone()
+      .addScaledVector(this.n1, c.off[0])
+      .addScaledVector(this.n2, c.off[1])
+      .addScaledVector(this.tEnd, along);
+  }
+
+  private conductorRoute(c: Conductor, terminal: WireId | null) {
+    const A = this.startPoint(c, -0.15);
+    const B = this.startPoint(c, 0.9);
+
+    if (terminal === null) {
+      // Loose: the core hangs free, fanned out so you can see and pick each one.
+      const spread = c.id === 'line' ? -1 : c.id === 'neutral' ? 0 : 1;
+      const F = B.clone()
+        .addScaledVector(this.tEnd, 2.2)
+        .addScaledVector(this.n1, spread * 2.0)
+        .add(new THREE.Vector3(0, -0.9, 0));
+      const M = B.clone().lerp(F, 0.5).add(new THREE.Vector3(0, 0.15, 0));
+      const tip = F.clone().add(F.clone().sub(M).normalize().multiplyScalar(0.55));
+      return { ins: [A, B, M, F], bare: [F, tip] };
+    }
+
+    const t = this.terminalInfo.get(terminal)!;
+    const I = t.entry.clone().addScaledVector(t.dir, 0.45);
+    const C = I.clone().addScaledVector(t.dir, 1.1);
+    let via: THREE.Vector3[];
+    if (c.id === 'earth' && terminal === 'earth') {
+      via = this.cpcVia;
+    } else {
+      const mid = B.clone().lerp(C, 0.5);
+      // A mis-wired core takes a wider path so it clears the other terminals.
+      if (c.id !== terminal) mid.addScaledVector(this.zOut, 1.0);
+      via = [mid];
+    }
+    return { ins: [A, B, ...via, C, I], bare: [I, t.entry.clone().addScaledVector(t.dir, -0.05)] };
+  }
+
+  private rebuildConductor(c: Conductor) {
+    const r = this.conductorRoute(c, this.assignments[c.id]);
+    c.ins.geometry.dispose();
+    c.ins.geometry = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(r.ins, false, 'centripetal'), 120, 0.15, 10, false);
+    c.bare.geometry.dispose();
+    c.bare.geometry = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(r.bare, false, 'centripetal'), 6, 0.085, 10, false);
+    c.hit.geometry.dispose();
+    c.hit.geometry = new THREE.TubeGeometry(
+      new THREE.CatmullRomCurve3([...r.ins, ...r.bare.slice(1)], false, 'centripetal'),
+      60,
+      0.45,
+      6,
+      false,
+    );
+  }
+
+  private pickWire(hits: THREE.Intersection[]) {
+    const kindOf = (h: THREE.Intersection) => h.object.userData.kind as 'conductor' | 'terminal' | undefined;
+    // With a core in hand, a terminal under the cursor wins over any core near it.
+    const terminal = this.activeConductor ? hits.find((h) => kindOf(h) === 'terminal') : undefined;
+    const conductor = hits.find((h) => kindOf(h) === 'conductor');
+    if (terminal) this.assignToTerminal(terminal.object.userData.wire as WireId);
+    else if (conductor) this.selectConductor(conductor.object.userData.wire as WireId);
+    else if (this.activeConductor) this.selectConductor(this.activeConductor); // click away = put down
   }
 
   /* ------------------------------- building ------------------------------- */
@@ -341,11 +509,16 @@ export class SocketScene {
       clamp.position.set(t.x, t.y, REAR_Z - 0.55);
       p.add(clamp);
       this.register(t.id, clamp);
+      clamp.userData.kind = 'terminal';
+      clamp.userData.wire = t.id;
 
       const head = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.18, 22).rotateX(Math.PI / 2), brass());
       head.position.set(t.x, t.y, REAR_Z - 1.1);
       p.add(head);
       this.register(t.id, head);
+      head.userData.kind = 'terminal';
+      head.userData.wire = t.id;
+      this.terminalMats.set(t.id, [clamp.material as THREE.MeshStandardMaterial, head.material as THREE.MeshStandardMaterial]);
       const slot = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.09, 0.06), std(0x3a3226, { roughness: 0.7 }));
       slot.position.set(t.x, t.y, REAR_Z - 1.2);
       p.add(slot);
@@ -394,8 +567,10 @@ export class SocketScene {
 
     const n1 = tEnd.clone().cross(up).normalize();
     const n2 = tEnd.clone().cross(n1).normalize();
-    const startFor = (a: number, b: number) =>
-      S.clone().addScaledVector(n1, a).addScaledVector(n2, b);
+    this.sheathEnd.copy(S);
+    this.tEnd.copy(tEnd);
+    this.n1.copy(n1);
+    this.n2.copy(n2);
 
     const tube = (points: THREE.Vector3[], r: number, mat: THREE.Material, seg = 80) =>
       new THREE.Mesh(
@@ -403,59 +578,45 @@ export class SocketScene {
         mat,
       );
 
-    const wire = (
-      id: PartId,
-      mat: THREE.Material,
-      a: THREE.Vector3,
-      via: THREE.Vector3[],
-      entry: THREE.Vector3,
-      dir: THREE.Vector3,
-    ) => {
-      const I = entry.clone().addScaledVector(dir, 0.45);
-      const C = I.clone().addScaledVector(dir, 1.1);
-      const A = a.clone().addScaledVector(tEnd, -0.15);
-      const B = a.clone().addScaledVector(tEnd, 0.9);
-      const route = [A, B, ...via, C, I];
-      const ins = tube(route, 0.15, mat, 120);
-      this.scene.add(ins);
-      this.register(id, ins);
-      const bare = tube([I, entry.clone().addScaledVector(dir, -0.05)], 0.085, copper(), 6);
-      this.scene.add(bare);
-      this.register(id, bare);
-      return ins;
-    };
-
     const down = new THREE.Vector3(0, -1, 0).transformDirection(this.plate.matrixWorld);
     const upW = new THREE.Vector3(0, 1, 0).transformDirection(this.plate.matrixWorld);
+    this.zOut = new THREE.Vector3(0, 0, -1).transformDirection(this.plate.matrixWorld);
+    this.cpcVia = [toWorld(-3.5, -1.5, -4.6), toWorld(-3.0, 2.6, -4.0)];
 
-    // Line and neutral approach their clamps from below.
-    for (const [id, mat, x, off] of [
-      ['line', this.lineMat, 1.45, -0.17],
-      ['neutral', this.neutralMat, -1.45, 0.17],
-    ] as const) {
-      const A = startFor(off, 0);
-      const entry = toWorld(x, -1.0 - 0.6, REAR_Z - 0.55);
-      const B = A.clone().addScaledVector(tEnd, 0.9);
-      const C = entry.clone().addScaledVector(down, 1.55);
-      wire(id, mat, A, [B.clone().lerp(C, 0.5)], entry, down);
-    }
+    // Where each terminal takes a conductor: line and neutral from below, earth from above.
+    this.terminalInfo.set('line', { entry: toWorld(1.45, -1.0 - 0.6, REAR_Z - 0.55), dir: down });
+    this.terminalInfo.set('neutral', { entry: toWorld(-1.45, -1.0 - 0.6, REAR_Z - 0.55), dir: down });
+    this.terminalInfo.set('earth', { entry: toWorld(-0.25, 1.55 + 0.6, REAR_Z - 0.55), dir: upW });
 
-    // Earth: cable CPC and tail both enter the top of the earth clamp.
+    // The three cores from the cable. Their routes are rebuilt whenever they are (re)connected.
     const sleeveMat = std(0xffffff, { roughness: 0.45 });
     sleeveMat.map = stripedTexture();
     const sleeveTail = sleeveMat.clone();
     sleeveTail.map = sleeveMat.map;
-
-    const cpcA = startFor(0, 0.14);
-    const cpcEntry = toWorld(-0.25, 1.55 + 0.6, REAR_Z - 0.55);
-    wire(
-      'earth',
-      sleeveMat,
-      cpcA,
-      [toWorld(-3.5, -1.5, -4.6), toWorld(-3.0, 2.6, -4.0)],
-      cpcEntry,
-      upW,
-    );
+    const defs: [WireId, THREE.MeshStandardMaterial, [number, number]][] = [
+      ['line', this.lineMat, [-0.17, 0]],
+      ['neutral', this.neutralMat, [0.17, 0]],
+      ['earth', sleeveMat, [0, 0.14]],
+    ];
+    for (const [id, mat, off] of defs) {
+      const ins = new THREE.Mesh(new THREE.BufferGeometry(), mat);
+      const bare = new THREE.Mesh(new THREE.BufferGeometry(), copper());
+      this.scene.add(ins, bare);
+      this.register(id, ins);
+      this.register(id, bare);
+      for (const m of [ins, bare]) {
+        m.userData.kind = 'conductor';
+        m.userData.wire = id;
+      }
+      const hit = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial({ visible: false }));
+      hit.userData.kind = 'conductor';
+      hit.userData.wire = id;
+      this.scene.add(hit);
+      this.wirePickables.push(hit);
+      const c: Conductor = { id, mat, off, ins, bare, hit };
+      this.conductors.set(id, c);
+    }
+    this.setAssignments({ line: 'line', neutral: 'neutral', earth: 'earth' });
 
     const tailEntry = toWorld(0.25, 1.55 + 0.6, REAR_Z - 0.55);
     const t0 = new THREE.Vector3(-2.8, -1.0, -D / 2 + T + 0.3);
@@ -487,6 +648,10 @@ export class SocketScene {
       const r = el.getBoundingClientRect();
       const ndc = new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
       this.raycaster.setFromCamera(ndc, this.camera);
+      if (this.mode === 'wire') {
+        this.pickWire(this.raycaster.intersectObjects([...this.pickables, ...this.wirePickables], false));
+        return;
+      }
       const hit = this.raycaster.intersectObjects(this.pickables, false)[0];
       const id = (hit?.object.userData.part as PartId | undefined) ?? null;
       this.onSelect(id);
@@ -541,6 +706,19 @@ export class SocketScene {
         m.emissive.set(0xe8742a);
         m.emissiveIntensity = intensity;
       });
+    }
+
+    if (this.mode === 'wire' && this.activeConductor) {
+      const pulse = this.reduced ? 0.4 : 0.3 + 0.2 * Math.sin(t * 4);
+      const mat = this.conductors.get(this.activeConductor)!.mat;
+      mat.emissive.set(0xe8742a);
+      mat.emissiveIntensity = pulse;
+      this.terminalMats.forEach((ms) =>
+        ms.forEach((m) => {
+          m.emissive.set(0xe8742a);
+          m.emissiveIntensity = pulse * 0.8;
+        }),
+      );
     }
 
     this.renderer.render(this.scene, this.camera);
