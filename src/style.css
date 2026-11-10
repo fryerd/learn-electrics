@@ -155,17 +155,14 @@ h1 {
   box-shadow: 0 1px 4px rgba(29, 35, 43, 0.25);
   pointer-events: auto;
   cursor: pointer;
-  /* Position is set per frame via --x/--y; hover scale uses the separate `scale`
-     property so it can animate without making the position lag. */
+  /* Position is set per frame via --x/--y (no transition on transform, so no lag). */
   transform: translate(var(--x, 0px), var(--y, 0px));
-  transition: scale 0.15s, opacity 0.2s, background 0.2s, box-shadow 0.2s;
+  transition: opacity 0.2s, background 0.2s, box-shadow 0.2s;
   will-change: transform;
 }
 .hotspot:hover,
 .hotspot:focus-visible {
-  scale: 1.18;
-  background: rgb(31, 95, 191);
-  box-shadow: 0 0 0 4px rgba(31, 95, 191, 0.3), 0 2px 6px rgba(29, 35, 43, 0.3);
+  background: rgba(31, 95, 191, 0.95);
 }
 .hotspot.occluded {
   opacity: 0.3;
