@@ -59,9 +59,10 @@ const WIDE: Layout = {
   kit: [490, 50],
   socket: [680, 90],
   prover: [20, 400],
-  tester: [300, 352],
-  testerCap: [262, 470],
-  tools: [640, 395],
+  // Tester and tools sit left of centre so the guide card (bottom-right) never hides them.
+  tester: [390, 352],
+  testerCap: [354, 470],
+  tools: [160, 400],
   colleague: [318, 150],
   benchY: 365,
   cable: 'M260 30 V22 Q260 14 268 14 H742 Q750 14 750 22 V90',
@@ -1008,6 +1009,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
 
   /* ======================================= GUIDE ======================================= */
   // SVG parts of the workbench use the chapter's own glow (box-shadow does not show on SVG).
+  const guidesBefore = new Set(document.querySelectorAll('.gd'));
   mountGuide(
     stage,
     [
@@ -1082,8 +1084,29 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
         },
       },
     ],
-    { position: 'bottom-left' },
+    { position: 'bottom-right' },
   );
+
+  // The card floats over the stage on wide screens. The workbench is laid out around it; the
+  // centred scenes (job card, layers, golden rules) are inset so the card never hides them.
+  const gd = [...document.querySelectorAll<HTMLElement>('.gd')].find((el) => !guidesBefore.has(el));
+  const gdCard = gd?.querySelector<HTMLElement>('.gd-card');
+  const fitGuide = () => {
+    let r = 0;
+    let b = 0;
+    if (gd && gdCard && !gd.classList.contains('gd-docked') && !gdCard.hidden) {
+      const roomLeft = stage.clientWidth - gdCard.offsetWidth - 28;
+      if (roomLeft >= 460) r = gdCard.offsetWidth + 22;
+      else b = gdCard.offsetHeight + 22;
+    }
+    root.style.setProperty('--sf-gd-r', `${r}px`);
+    root.style.setProperty('--sf-gd-b', `${b}px`);
+  };
+  if (gdCard) {
+    const gro = new ResizeObserver(fitGuide);
+    gro.observe(gdCard);
+    gro.observe(stage);
+  }
 
   /* ======================================= START ======================================= */
   resetScene();
