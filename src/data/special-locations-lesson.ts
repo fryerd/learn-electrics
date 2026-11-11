@@ -6,7 +6,7 @@ import type { QuizQuestion } from './socket-lesson';
 export const lesson = {
   title: 'Fit out the bathroom',
   intro:
-    'Water and electricity are a dangerous mix: wet skin lets far more current through you. So a room with a bath or shower is split into zones, and each zone has rules about what may go there. Drag each item onto the wall (or tap it, then tap the wall) and see if it is allowed.',
+    'Drag each item onto the wall (or tap it, then tap the wall) and see if it is allowed in that zone.',
 };
 
 /* ------------------------------------------------------------------ geometry (metres) */
