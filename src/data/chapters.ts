@@ -5,6 +5,8 @@ export interface Chapter {
   id: string;
   n: number;
   title: string;
+  /** A short label for the pills along the top of the page. */
+  short: string;
   act: string;
   blurb: string;
   /** The hands-on things you will do (shown on the "coming soon" page). */
@@ -21,6 +23,7 @@ export const chapters: Chapter[] = [
     id: 'basics',
     n: 1,
     title: 'Electricity basics',
+    short: 'Basics',
     act: 'The basics',
     blurb: 'Volts, amps, watts and ohms, and why the UK supply is 230 V.',
     doing: ['Ohm’s law and power sliders', 'A water-pipe animation that reacts live'],
@@ -31,6 +34,7 @@ export const chapters: Chapter[] = [
     id: 'network',
     n: 2,
     title: 'The power network',
+    short: 'Network',
     act: 'From the street to your house',
     blurb: 'From the local transformer to the cut-out fuse and meter.',
     doing: ['Follow the current along the street', 'A "will my supply cope?" calculator'],
@@ -41,6 +45,7 @@ export const chapters: Chapter[] = [
     id: 'earthing',
     n: 3,
     title: 'Supply and earthing',
+    short: 'Earthing',
     act: 'From the street to your house',
     blurb: 'Why we earth, TN-S, TN-C-S and TT, and main bonding.',
     doing: ['Switch the earthing arrangement and watch the fault path', 'Place the bonding clamps'],
@@ -51,6 +56,7 @@ export const chapters: Chapter[] = [
     id: 'consumer-unit',
     n: 4,
     title: 'The consumer unit',
+    short: 'Consumer unit',
     act: 'Inside the consumer unit',
     blurb: 'Main switch, MCBs and RCDs, and which device suits which load.',
     doing: ['Pick the right device for each appliance', 'An RCD ramp and trip-time tester'],
@@ -61,6 +67,7 @@ export const chapters: Chapter[] = [
     id: 'cables',
     n: 5,
     title: 'Cables and circuit design',
+    short: 'Cables',
     act: 'Inside the consumer unit',
     blurb: 'Cable size, breaker and load: Ib ≤ In ≤ Iz, and volt drop.',
     doing: ['Size a circuit for a shower', 'Stretch the cable run and watch the volt drop'],
@@ -71,6 +78,7 @@ export const chapters: Chapter[] = [
     id: 'fault-loop',
     n: 6,
     title: 'The earth fault loop',
+    short: 'Fault loop',
     act: 'Inside the consumer unit',
     blurb: 'Zs = Ze + (R1 + R2) and why a breaker trips.',
     doing: ['Build the loop with sliders', 'A virtual earth-fault-loop meter'],
@@ -81,6 +89,7 @@ export const chapters: Chapter[] = [
     id: 'sockets',
     n: 7,
     title: 'Socket circuits',
+    short: 'Sockets',
     act: 'Out to the appliances',
     blurb: 'Inside a 13 A socket, wiring it, and fitting the faceplate.',
     doing: ['Wire the socket yourself', 'Fit the faceplate'],
@@ -91,6 +100,7 @@ export const chapters: Chapter[] = [
     id: 'lighting',
     n: 8,
     title: 'Lighting and switches',
+    short: 'Lighting',
     act: 'Out to the appliances',
     blurb: 'Gangs, poles and ways, one-way, two-way and intermediate.',
     doing: ['Wire lamp circuits and flip the switches', 'A two-way and intermediate puzzle'],
@@ -101,6 +111,7 @@ export const chapters: Chapter[] = [
     id: 'special-locations',
     n: 9,
     title: 'Special locations and IP codes',
+    short: 'Special locations',
     act: 'Out to the appliances',
     blurb: 'Bathroom zones, the extractor fan circuit and IP ratings.',
     doing: ['Drag fittings into the right bathroom zones', 'Match IP ratings to places'],
@@ -111,6 +122,7 @@ export const chapters: Chapter[] = [
     id: 'safety-law',
     n: 10,
     title: 'Safety and the law',
+    short: 'Safety & law',
     act: 'Rules and proof',
     blurb: 'Part P, BS 7671 and safe isolation.',
     doing: ['Put the safe-isolation steps in order', 'Is this job notifiable?'],
@@ -121,6 +133,7 @@ export const chapters: Chapter[] = [
     id: 'certification',
     n: 11,
     title: 'Certification and fault-finding',
+    short: 'Certification',
     act: 'Rules and proof',
     blurb: 'The installation certificate, and a find-the-fault game.',
     doing: ['Fill in a certificate from test results', 'Find the planted faults'],

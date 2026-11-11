@@ -3,12 +3,13 @@ import '@fontsource/barlow-semi-condensed/600.css';
 import '@fontsource/barlow-semi-condensed/700.css';
 import './style.css';
 
-import { DEFAULT_CHAPTER, chapterById } from './data/chapters';
+import { chapterById } from './data/chapters';
 import { markDone } from './progress';
 import { loaders } from './chapters/registry';
 import { renderSoon } from './chapters/soon';
 import type { ChapterContext, ChapterInstance } from './chapters/types';
-import { initStrip } from './ui/strip';
+import { mountHome } from './chapters/home';
+import { initPills } from './ui/pills';
 
 // Every chapter gets its own stage pane and panel pane. They are created the first time the chapter is
 // opened, then simply shown and hidden. The socket chapter's panes are written in index.html.
@@ -18,6 +19,8 @@ interface Slot {
   instance?: ChapterInstance;
 }
 
+const app = document.getElementById('app')!;
+const pillsNav = document.getElementById('pills-nav')!;
 const stageRoot = document.getElementById('stage')!;
 const panelRoot = document.querySelector('.panel')!;
 const slots = new Map<string, Slot>();
@@ -49,21 +52,46 @@ function slotFor(id: string): Slot {
   return slot;
 }
 
-const strip = initStrip((id) => {
+const pills = initPills((id) => {
   location.hash = `#/${id}`;
 });
 
+// The homepage: the 3D socket and the way in. It is its own little "chapter" with no panel.
+let home: { activate(): void; deactivate(): void } | undefined;
+
+function showHome() {
+  navToken++;
+  app.dataset.view = 'home';
+  pillsNav.hidden = true;
+  for (const s of slots.values()) {
+    s.ctx.stage.hidden = true;
+    s.ctx.panel.hidden = true;
+  }
+  document.getElementById('stage-home')!.hidden = false;
+  if (activeId) slots.get(activeId)?.instance?.deactivate();
+  activeId = null;
+  home ??= mountHome();
+  home.activate();
+  document.title = 'Learn Electrics';
+}
+
 async function show(requested: string) {
-  const chapter = chapterById(requested) ?? chapterById(DEFAULT_CHAPTER)!;
+  const chapter = chapterById(requested);
+  if (!chapter) return showHome();
   const token = ++navToken;
   const slot = slotFor(chapter.id);
+
+  home?.deactivate();
+  document.getElementById('stage-home')!.hidden = true;
+  app.dataset.view = 'chapter';
+  pillsNav.hidden = false;
 
   // Show this chapter's panes straight away (a chapter that is still loading just looks empty for a moment).
   for (const [id, s] of slots) {
     s.ctx.stage.hidden = id !== chapter.id;
     s.ctx.panel.hidden = id !== chapter.id;
   }
-  strip.setCurrent(chapter.id);
+  pills.setCurrent(chapter.id);
   document.title = `${chapter.n}. ${chapter.title} · Learn Electrics`;
 
   if (!slot.instance) {
@@ -89,6 +117,9 @@ async function show(requested: string) {
   activeId = chapter.id;
 }
 
-const fromHash = () => location.hash.replace(/^#\/?/, '') || DEFAULT_CHAPTER;
+const fromHash = () => location.hash.replace(/^#\/?/, '');
 window.addEventListener('hashchange', () => void show(fromHash()));
 void show(fromHash());
+
+// The footer disclaimer is one line inside the course; click it to read it all.
+document.getElementById('disclaimer')!.addEventListener('click', (e) => (e.currentTarget as HTMLElement).classList.toggle('expanded'));

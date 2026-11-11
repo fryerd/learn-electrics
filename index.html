@@ -12,18 +12,27 @@
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   </head>
   <body>
-    <div class="app">
+    <div class="app" id="app" data-view="home">
       <header class="topbar">
-        <div class="brand">
+        <a class="brand" href="#/" aria-label="Learn Electrics: home">
           <svg class="logo" viewBox="0 0 40 40" aria-hidden="true">
             <rect x="3" y="3" width="34" height="34" rx="8" fill="none" stroke="currentColor" stroke-width="3" />
             <path d="M22 8 13 22h7l-2 10 9-14h-7z" fill="#6b3f1d" />
           </svg>
-          <div>
+          <div class="brand-text">
             <h1>Learn Electrics</h1>
             <p class="tagline">Explore · Understand · Wire safely</p>
           </div>
-        </div>
+        </a>
+
+        <!-- Chapter pills: only shown inside the course -->
+        <nav class="pills" id="pills-nav" aria-label="Chapters" hidden>
+          <div class="pills-scroll" id="pills-scroll"></div>
+          <button class="pills-next" id="pills-next" type="button" aria-label="Scroll to more chapters">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </nav>
+
         <div class="header-right">
           <span class="cores" aria-hidden="true"><i class="core-brown"></i><i class="core-blue"></i><i class="core-earth"></i></span>
           <div class="chip progress-chip" id="progress-chip" title="Chapters you have finished (saved in this browser)">
@@ -35,6 +44,17 @@
       </header>
 
       <main class="stage" id="stage" aria-label="Interactive lesson">
+        <!-- Homepage: the 3D socket and the way in -->
+        <div class="stage-pane" id="stage-home" hidden>
+          <div class="canvas-host" id="home-canvas"></div>
+          <div class="home-cta">
+            <p class="home-lede">From the street to the socket: 11 hands-on chapters on UK electrics.</p>
+            <a class="home-button" id="home-start" href="#/basics">
+              Enter the curriculum
+              <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          </div>
+        </div>
         <!-- Chapter 7: the socket (3D). Every other chapter's panes are created by src/main.ts. -->
         <div class="stage-pane" id="stage-socket" hidden>
           <div class="canvas-host" id="canvas-host"></div>
@@ -63,20 +83,7 @@
         </div>
       </aside>
 
-      <nav class="strip" aria-label="Chapters">
-        <div class="strip-head">
-          <h2>Chapters</h2>
-          <span class="strip-act" id="strip-act"></span>
-        </div>
-        <div class="strip-row">
-          <div class="strip-scroll" id="strip-scroll"></div>
-          <button class="strip-next" id="strip-next" type="button" aria-label="Scroll to more chapters">
-            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </button>
-        </div>
-      </nav>
-
-      <footer class="disclaimer">
+      <footer class="disclaimer" id="disclaimer" title="Click to read the full disclaimer">
         <p>
           <strong>For personal interest only.</strong> This is an educational project, not a substitute for qualified
           training or a guide to carrying out electrical work. Electrical work must be done by a competent person, and
