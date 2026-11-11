@@ -53,6 +53,14 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
   let current = designCurrent(appliance(design.applianceId).watts);
   let tries = 0;
   const done = new Set<ChallengeId>();
+  /** True while the design is one the stage guide set up, so the challenges are not ticked for the learner. */
+  let guided = false;
+  // Any real input from the learner ends that.
+  panel.addEventListener('pointerdown', () => (guided = false), true);
+  panel.addEventListener('keydown', () => (guided = false), true);
+  stage.addEventListener('pointerdown', (e) => {
+    if (!(e.target as Element).closest('.gd')) guided = false;
+  }, true);
 
   /* ------------------------------ the stage ------------------------------ */
   stage.innerHTML = `
@@ -291,7 +299,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
   };
 
   const markChallenge = (id: ChallengeId) => {
-    if (done.has(id)) return;
+    if (guided || done.has(id)) return;
     done.add(id);
     q('cb-challenges').querySelector(`[data-ch="${id}"]`)?.classList.add('ok');
   };
@@ -408,6 +416,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
   const showTab = (k: Tab) => q(`cb-tab-${k}`).click();
   /** Set part of the design without counting it as the learner's own try, and go back to normal load. */
   const setDesign = (d: Partial<Design>) => {
+    guided = true;
     Object.assign(design, d);
     showTab('design');
     onDesignChange(false);
