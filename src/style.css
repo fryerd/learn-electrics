@@ -1113,19 +1113,9 @@ h1 {
   box-shadow: 0 12px 26px rgba(31, 95, 191, 0.4);
 }
 
-/* ---------------------------- footer: one line inside the course ---------------------------- */
+/* The disclaimer lives on the homepage only. */
 .app[data-view='chapter'] .disclaimer {
-  cursor: pointer;
-  padding-top: 6px;
-}
-.app[data-view='chapter'] .disclaimer:not(.expanded) p {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-height: none;
-}
-.app[data-view='chapter'] .disclaimer.expanded p {
-  max-height: none;
+  display: none;
 }
 @media (max-width: 880px) {
   .app[data-view='home'] .stage {
@@ -1151,4 +1141,53 @@ h1 {
   .app[data-view='chapter'] .progress-bar {
     display: none;
   }
+}
+
+/* homepage socket: little prompt + open/close button */
+.home-hint {
+  position: absolute;
+  left: 50%;
+  top: 12px;
+  transform: translateX(-50%);
+  margin: 0;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  pointer-events: none;
+  text-align: center;
+  white-space: nowrap;
+}
+.home-toggle {
+  border: 2px solid var(--line);
+  background: var(--card);
+  border-radius: 999px;
+  padding: 5px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.home-toggle:hover {
+  border-color: var(--ink-soft);
+}
+@media (max-width: 480px) {
+  .home-hint {
+    font-size: 11px;
+    white-space: normal;
+    width: 90%;
+  }
+}
+
+/* keep the 3D picture clear of the call to action */
+#home-canvas {
+  position: absolute;
+  inset: 0 0 150px 0;
+}
+.home-lede {
+  max-width: 60ch;
+}
+.home-cta {
+  padding-top: 20px;
+  gap: 10px;
 }

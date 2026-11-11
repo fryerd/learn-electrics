@@ -370,6 +370,30 @@ export class SocketScene {
     this.onWiringChange();
   }
 
+  /** Put every core on its proper terminal. */
+  wireCorrectly() {
+    if (this.mode !== 'wire' || this.fitWanted) return;
+    this.activeConductor = null;
+    this.setAssignments({ line: 'line', neutral: 'neutral', earth: 'earth' });
+    this.onWiringChange();
+  }
+
+  /** Jump straight to "all wired and the faceplate screwed on" (wire mode only). Used by the homepage. */
+  presetFitted() {
+    if (this.mode !== 'wire') return;
+    this.setAssignments({ line: 'line', neutral: 'neutral', earth: 'earth' });
+    this.activeConductor = null;
+    this.fitWanted = true;
+    this.fit = 1;
+    this.screw = 1;
+    this.applyScrew();
+    this.setFit(1);
+    this.tween = null;
+    this.camera.position.set(6, 4.5, 27);
+    this.controls.target.set(0, 0, 2);
+    this.onWiringChange();
+  }
+
   private wireView() {
     const target = this.defaultTarget.clone().add(new THREE.Vector3(-1.8, -0.9, 0));
     const pos = target.clone().add(this.defaultPos.clone().sub(this.defaultTarget).multiplyScalar(0.78));
