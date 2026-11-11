@@ -1,0 +1,233 @@
+/* The step-by-step guide card that sits on a chapter's stage (see src/ui/guide.ts). */
+.gd {
+  position: absolute;
+  z-index: 5;
+  max-width: calc(100% - 28px);
+  pointer-events: none;
+}
+.gd[hidden] {
+  display: none;
+}
+.gd-top-left {
+  top: 14px;
+  left: 14px;
+}
+.gd-top-right {
+  top: 14px;
+  right: 14px;
+}
+.gd-bottom-left {
+  bottom: 14px;
+  left: 14px;
+}
+.gd-bottom-right {
+  bottom: 14px;
+  right: 14px;
+}
+.gd-card,
+.gd-open {
+  pointer-events: auto;
+}
+.gd-card {
+  width: 330px;
+  max-width: 100%;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(5px);
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  padding: 10px 14px 12px;
+  box-shadow: 0 10px 26px rgba(29, 35, 43, 0.15);
+}
+.gd-card[hidden],
+.gd-open[hidden] {
+  display: none;
+}
+.gd-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+.gd-count {
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.gd-min {
+  width: 26px;
+  height: 26px;
+  border: 2px solid var(--line);
+  background: var(--paper);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+.gd-min:hover {
+  border-color: var(--ink-soft);
+}
+.gd-kicker {
+  display: inline-block;
+  margin: 4px 0 2px;
+  padding: 1px 9px;
+  border-radius: 999px;
+  background: var(--paper);
+  border: 1.5px solid var(--line);
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--brown);
+}
+.gd-kicker[hidden] {
+  display: none;
+}
+.gd-title {
+  margin: 2px 0 4px;
+  font-size: 21px;
+  line-height: 1.1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.gd-text {
+  margin: 0;
+  font-size: 15.5px;
+  line-height: 1.38;
+}
+.gd-try {
+  margin-top: 9px;
+  padding: 7px 10px;
+  border-left: 5px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+  background: var(--paper);
+  font-size: 14.5px;
+  line-height: 1.32;
+}
+.gd-try[hidden] {
+  display: none;
+}
+.gd-try b {
+  display: block;
+  font-size: 11.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.gd-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 11px;
+}
+.gd-back,
+.gd-next {
+  border: 2px solid var(--line);
+  background: var(--card);
+  border-radius: 10px;
+  padding: 5px 12px;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.gd-next:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.gd-back:disabled,
+.gd-next:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.gd-dots {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.gd-dot {
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid var(--ink-soft);
+  background: transparent;
+}
+.gd-dot.is-past {
+  background: var(--ink-soft);
+}
+.gd-dot.is-on {
+  background: var(--accent);
+  border-color: var(--accent);
+  transform: scale(1.25);
+}
+.gd-open {
+  border: 2px solid var(--ink);
+  background: var(--ink);
+  color: #fff;
+  border-radius: 999px;
+  padding: 5px 14px;
+  font-weight: 700;
+  font-size: 13.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  box-shadow: 0 6px 16px rgba(29, 35, 43, 0.25);
+}
+
+/* Ring around the thing to touch */
+.gd-pulse {
+  animation: gd-pulse 1.9s ease-out 1;
+  border-radius: 10px;
+}
+@keyframes gd-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(31, 95, 191, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 12px rgba(31, 95, 191, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(31, 95, 191, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gd-pulse {
+    animation: none;
+    outline: 3px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+/* Phones: the guide is docked as its own block under the picture (see guide.ts). */
+.gd-docked,
+.gd-docked.gd-top-left,
+.gd-docked.gd-top-right,
+.gd-docked.gd-bottom-left,
+.gd-docked.gd-bottom-right {
+  position: static;
+  max-width: none;
+  order: 1;
+}
+.gd-docked .gd-card {
+  width: 100%;
+  padding: 8px 12px 10px;
+  box-shadow: none;
+  background: var(--card);
+}
+.gd-docked .gd-title {
+  font-size: 18px;
+}
+.gd-docked .gd-text {
+  font-size: 14.5px;
+}
+.gd-docked .gd-try {
+  font-size: 14px;
+}
+.gd-docked .gd-open {
+  margin: 0;
+}

@@ -24,6 +24,24 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
 - Call `complete()` when the learner has finished (normally: quiz score ≥ 75%, or the main challenge done). It ticks the chapter off on the strip.
 - Animation loops must run only between `activate()` and `deactivate()`. Respect `prefers-reduced-motion` (no endless loops; show a static state).
 
+## The stage guide (step-by-step walkthrough)
+
+Most of a chapter's explaining should happen **on the stage**, next to the picture, not in side-panel tabs that are easy to miss. `src/ui/guide.ts` gives every chapter the same walkthrough card (like the power-network journey): a step counter, a short title, a few sentences, an optional "Try it" prompt, and Back / Next with dots.
+
+```ts
+import { mountGuide, pulse } from '../ui/guide';
+
+mountGuide(stage, [
+  { title: 'Water in a pipe', text: 'One to three short sentences.', onEnter: () => resetTheScene() },
+  { kicker: 'Volts (V)', title: 'Voltage is the pressure', text: '…', tryIt: 'Drag the slider down.', onEnter: () => pulse(sliderEl) },
+], { position: 'top-right' });
+```
+
+- `onEnter` runs each time the learner arrives on a step: use it to set the controls, move the camera or highlight what to touch with `pulse(element)`.
+- Pick the corner (`top-left`, `top-right`, `bottom-left`, `bottom-right`) that does **not** cover the important part of your picture. On phones the card is docked under the picture automatically, so it never covers it.
+- Aim for 4 to 7 steps that tell the chapter's story in order. The side panel then holds the tools (sliders, challenges, calculators) and the quiz, with only a short intro line.
+- `src/chapters/basics.ts` is the reference.
+
 ## Files you may touch
 
 Only your own: `src/chapters/<id>.ts` (replace the placeholder), `src/chapters/<id>.css` (import it from your `.ts`), `src/data/<id>-lesson.ts` (text, presets, quiz), and any helper files named `src/chapters/<id>-*.ts` or `src/data/<id>-*.ts`. Do **not** edit `style.css`, `main.ts`, `index.html`, `chapters.ts`, `registry.ts`, `package.json`, or another chapter's files. If you need a shared change, say so in your report instead.

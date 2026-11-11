@@ -4,8 +4,7 @@ import type { QuizQuestion } from './socket-lesson';
 
 export const basics = {
   title: 'Volts, amps and ohms',
-  intro:
-    'Think of electricity as water in a pipe. Voltage is the pressure pushing it, resistance is how narrow the pipe is, and current is how much actually flows. Drag the sliders and watch all three change together.',
+  intro: 'Drag the sliders and watch the pipe, the flow and the lamp change together.',
 };
 
 /** Typical appliances at the UK's nominal 230 V: resistance is V² ÷ P. */

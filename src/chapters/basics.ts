@@ -1,4 +1,5 @@
 import { basics, presets, quiz } from '../data/basics-lesson';
+import { mountGuide, pulse } from '../ui/guide';
 import { mountQuiz } from '../ui/quiz';
 import type { ChapterMount } from './types';
 
@@ -227,6 +228,64 @@ export const mount: ChapterMount = ({ stage, panel, complete: onComplete }) => {
     }),
   );
   update();
+
+  /* ------------------------------ the guided walkthrough ------------------------------ */
+  const setValues = (v: number, r: number) => {
+    volts = v;
+    ohms = r;
+    vin.value = String(v);
+    rin.value = String(r);
+    update();
+  };
+  const card = (el: HTMLElement) => el.closest('.slider-card') ?? el;
+  mountGuide(
+    stage,
+    [
+      {
+        title: 'Water in a pipe',
+        text: 'Electricity is a flow, like water in a pipe. To understand it you need three ideas: the pressure pushing the water, how narrow the pipe is, and how much actually flows. The picture shows all three at once.',
+        onEnter: () => setValues(230, 100),
+      },
+      {
+        kicker: 'Volts (V)',
+        title: 'Voltage is the pressure',
+        text: 'The tank is the push behind the flow. UK mains sits at 230 V, a nicely full tank. A lower voltage means a lower tank and a weaker push.',
+        tryIt: 'Drag the Voltage slider down and watch the tank drain and the flow slow.',
+        onEnter: () => pulse(card(vin)),
+      },
+      {
+        kicker: 'Ohms (Ω)',
+        title: 'Resistance is the narrow pipe',
+        text: 'A narrow pipe holds the flow back. The more resistance, the less gets through. Long, thin wires and heating elements have more resistance.',
+        tryIt: 'Raise the Resistance and watch the pipe narrow and the dots thin out.',
+        onEnter: () => {
+          setValues(230, 100);
+          pulse(card(rin));
+        },
+      },
+      {
+        kicker: 'Amps (A)',
+        title: 'Current is the flow',
+        text: 'Current is how much really flows: voltage divided by resistance, I = V ÷ R. More push or less resistance gives more current. Cables and breakers are chosen by current.',
+        tryIt: 'Press "3 kW kettle". That is about 13 A: see how fast the dots move.',
+        onEnter: () => pulse(panel.querySelector('.presets')),
+      },
+      {
+        kicker: 'Watts (W)',
+        title: 'Power is the work done',
+        text: 'Power is how fast energy is used: P = V × I. The lamp glows brighter as the power rises. A lamp uses about 100 W; a kettle about 3,000 W.',
+        tryIt: 'Change either slider and watch the lamp and the power reading.',
+        onEnter: () => pulse(panel.querySelector('.readouts')),
+      },
+      {
+        title: 'Now it is your turn',
+        text: 'Try the 13 A challenge and the Ohm’s law triangle on the right, then take the quiz to tick this chapter off.',
+        tryIt: 'Open the Quiz tab when you are ready.',
+        onEnter: () => pulse(tabs.quiz.btn),
+      },
+    ],
+    { position: 'top-right' },
+  );
 
   /* ------------------------------ the animation ------------------------------ */
   let raf = 0;
