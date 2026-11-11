@@ -173,11 +173,25 @@ export function mountSocket(onComplete: () => void) {
         kicker: 'Finish the job',
         title: 'Fit the faceplate',
         text: 'With all three cores connected, screw the faceplate back on. If anything is on the wrong terminal, the panel tells you what and why.',
-        tryIt: 'Press Fit the faceplate. When it is on, try the Quiz tab.',
+        tryIt: 'Press Fit the faceplate yourself, or press Next and it will be fitted for you.',
         onEnter: () => {
           drive('wire');
+          if (scene.getWiring().fit === 'fitted') scene.setFitted(false); // coming back from the next step
           const fit = wireView.querySelector<HTMLButtonElement>('[data-act="fit"]');
           pulse(fit && !fit.disabled ? fit : wireView.querySelector('.wire-columns'));
+        },
+      },
+      {
+        kicker: 'Job done',
+        title: 'The faceplate is on',
+        text: 'The faceplate is screwed back on over the wiring. If a core had been loose or on the wrong terminal, it was put right first. The panel and the quiz are still open for you.',
+        tryIt: 'Watch it go on, then try the Quiz tab. Press Next to move on.',
+        onEnter: () => {
+          drive('wire');
+          if (scene.getWiring().fit === 'off') {
+            scene.wireCorrectly(); // anything loose or swapped goes to its proper terminal
+            scene.setFitted(true);
+          }
         },
       },
     ],
