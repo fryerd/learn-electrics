@@ -71,8 +71,8 @@ export const mount: ChapterMount = ({ stage, panel, complete: onComplete }) => {
         <small id="nw-hud-sub"></small>
         <span class="nw-ownchip" id="nw-hud-own" hidden></span>
       </div>
-      <button type="button" class="nw-float nw-overview" id="nw-overview" aria-pressed="false">Whole route</button>
       <div class="nw-bar">
+        <button type="button" class="nw-float nw-overview" id="nw-overview" aria-pressed="false">Whole route</button>
         <button type="button" class="nw-step" id="nw-back" aria-label="Previous stage">‹</button>
         <div class="nw-dots" role="group" aria-label="Stages">${stages
           .map((s, i) => `<button type="button" class="nw-dot" data-dot="${i}" aria-label="${i + 1}. ${s.title}"><i></i></button>`)
@@ -772,7 +772,7 @@ export const mount: ChapterMount = ({ stage, panel, complete: onComplete }) => {
         kicker: '≈ 25 kV → 400 kV',
         title: 'Up for the long trip',
         text: 'A power station generator makes electricity at up to about 25 kV. A step-up transformer raises it to 400 kV (or 275 kV) for the pylons. High voltage means a small current, so little is lost as heat.',
-        tryIt: 'The "Why HV?" tab lets you test this for yourself later.',
+        tryIt: 'Open the "Why HV?" tab and compare the heat lost at 230 V with 400 kV, then come back here.',
         onEnter: () => {
           show('tx');
           pulse(panel.querySelector('[data-tab="hv"]'));
@@ -827,7 +827,7 @@ export const mount: ChapterMount = ({ stage, panel, complete: onComplete }) => {
         },
       },
     ],
-    { position: 'bottom-right' },
+    { position: 'top-right' },
   );
 
   return {

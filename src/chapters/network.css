@@ -543,6 +543,13 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
+.nw-bar .nw-float {
+  position: static;
+  margin-right: 4px;
+  padding: 5px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+}
 .nw-float:hover {
   border-color: var(--ink-soft);
 }
