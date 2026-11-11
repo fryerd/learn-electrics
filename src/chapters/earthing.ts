@@ -14,6 +14,7 @@ import {
   type ArrangementId,
   type PipeId,
 } from '../data/earthing-lesson';
+import { mountGuide, pulse } from '../ui/guide';
 import { mountQuiz } from '../ui/quiz';
 import { buildScene, faultLoop, polyline, spotPoint, TALL, WIDE, type Layout, type SceneState } from './earthing-scene';
 import type { ChapterMount } from './types';
@@ -168,6 +169,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
       placeDots();
     }
     tray.hidden = state.mode !== 'bond';
+    stage.classList.toggle('er-mode-bond', state.mode === 'bond');
     const left = 2 - (state.bonds.gas ? 1 : 0) - (state.bonds.water ? 1 : 0);
     tray.querySelectorAll<HTMLButtonElement>('[data-tray]').forEach((b) => (b.hidden = Number(b.dataset.tray) > left));
     tray.classList.toggle('is-empty', left === 0);
@@ -470,6 +472,88 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
 
   render();
   updatePanel();
+
+  /* ------------------------------ the guided walkthrough ------------------------------ */
+  const setArrangement = (id: ArrangementId, rcd = false) => {
+    selectTab('earth');
+    state.arr = id;
+    state.rcd = rcd;
+    ze = arrangementById(id).ze;
+    resetFault();
+  };
+  const arrButton = (id: ArrangementId) => panel.querySelector(`[data-arr="${id}"]`);
+  mountGuide(
+    stage,
+    [
+      {
+        title: 'A live metal case',
+        text: 'If the line wire touches a metal case, the case becomes live. Earthing gives the fault current an easy path back to the transformer, so a big current flows and the breaker trips.',
+        tryIt: 'Press “Cause a fault” and follow the orange dots home.',
+        onEnter: () => {
+          setArrangement('tncs');
+          pulse(faultBtn);
+        },
+      },
+      {
+        kicker: 'TN-S',
+        title: 'Earth via the cable sheath',
+        text: 'Many older streets have a separate earth all the way back, usually the supply cable’s metal sheath. It is a good path, so a big fault current flows.',
+        tryIt: 'Cause a fault and watch the breaker trip at once.',
+        onEnter: () => {
+          setArrangement('tns');
+          pulse(arrButton('tns'));
+        },
+      },
+      {
+        kicker: 'TN-C-S (PME)',
+        title: 'A shared neutral and earth',
+        text: 'The most common UK arrangement today. In the street one PEN conductor is both neutral and earth; at your cutout it splits in two.',
+        tryIt: 'Read the letters on the right, then cause a fault.',
+        onEnter: () => {
+          setArrangement('tncs');
+          pulse(panel.querySelector('#er-letters'));
+        },
+      },
+      {
+        kicker: 'TT',
+        title: 'Your own earth rod',
+        text: 'Common in rural areas: no earth from the supplier, just your own rod. The ground conducts poorly, so only a few amps flow and the breaker never trips.',
+        tryIt: 'Cause a fault, then tick “30 mA RCD fitted” and try again.',
+        onEnter: () => {
+          setArrangement('tt');
+          pulse(rcdIn.closest('label'));
+        },
+      },
+      {
+        kicker: 'Ze (Ω)',
+        title: 'Low Ze, fast trip',
+        text: `Fault current is ${U0} V ÷ Zs (Ze plus the circuit’s own wires). A 32 A type B breaker trips almost instantly at about ${MCB_INSTANT} A, so the earth path must be low.`,
+        tryIt: 'Drag the Ze slider up until the breaker becomes far too slow.',
+        onEnter: () => {
+          setArrangement('tncs');
+          pulse(zeIn.closest('.slider-card'));
+        },
+      },
+      {
+        kicker: 'Main bonding',
+        title: 'Bond the pipes',
+        text: 'Metal gas and water pipes can bring a different voltage in from outside. Bonding them to the main earth terminal (MET) makes everything you touch rise together in a fault.',
+        tryIt: 'Drag a clamp from the tray onto each pipe.',
+        onEnter: () => {
+          setArrangement('tncs');
+          selectTab('bond');
+          pulse(tray);
+        },
+      },
+      {
+        title: 'Now it is your turn',
+        text: 'Finish the fault challenge on the Earth tab and get both clamps right on the Bond tab, then take the quiz to tick this chapter off.',
+        tryIt: 'Open the Quiz tab when you are ready.',
+        onEnter: () => pulse(q('er-tab-quiz')),
+      },
+    ],
+    { position: 'top-left' },
+  );
 
   return {
     activate() {

@@ -639,6 +639,18 @@
   margin-top: 14px;
 }
 
+/* Wide screens: the step-by-step guide floats in the top-left sky, so the arrangement card moves to the
+   top right. In bond mode the clamp tray takes that corner and the card (about fault paths) steps aside. */
+@media (min-width: 881px) {
+  .er-card {
+    left: auto;
+    right: 12px;
+  }
+  .er-mode-bond .er-card {
+    display: none;
+  }
+}
+
 @media (max-width: 520px) {
   .er-card {
     max-width: 52%;

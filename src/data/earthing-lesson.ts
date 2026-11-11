@@ -187,11 +187,9 @@ export const bondSpots: BondSpot[] = [
 
 export const lesson = {
   title: 'Why we earth',
-  intro:
-    'If the line conductor touches an appliance’s metal case, the case becomes live. Earthing gives that fault current an easy path home to the transformer, so a big current flows and the breaker trips before anyone gets a shock. How that path gets home depends on how your supply is earthed.',
+  intro: 'Pick an arrangement, cause a fault and follow the current home to the transformer.',
   bondTitle: 'Main bonding',
-  bondIntro:
-    'Metal gas and water pipes come in from outside and can bring a different voltage with them. Main protective bonding conductors join them to the main earth terminal (MET), so in a fault everything you can touch rises together. No difference in voltage means no shock between a tap and a washing machine.',
+  bondIntro: 'Clamp the gas and water pipes to the main earth terminal (MET) so everything you can touch rises together in a fault.',
 };
 
 export const quiz: QuizQuestion[] = [
