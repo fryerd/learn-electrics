@@ -94,7 +94,7 @@ export function mountGuide(stage: HTMLElement, steps: GuideStep[], opts: GuideOp
     if (s.tryIt) tryBox.querySelector('span')!.textContent = s.tryIt;
     back.disabled = index === 0;
     const last = index === steps.length - 1;
-    next.innerHTML = last ? 'Next chapter &rsaquo;' : 'Next &rsaquo;';
+    next.innerHTML = 'Next &rsaquo;';
     dots.querySelectorAll('.gd-dot').forEach((d, j) => {
       d.classList.toggle('is-on', j === index);
       d.classList.toggle('is-past', j < index);
