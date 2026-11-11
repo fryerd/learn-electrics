@@ -39,6 +39,11 @@
   gap: 6px;
   pointer-events: none;
 }
+/* The stage guide sits top-left on wide screens: move the play button just to its right. */
+:has(> .fl-stage):has(> .gd:not([hidden]):not(.gd-docked)) .fl-overlay {
+  left: 358px;
+  right: 218px;
+}
 .fl-play {
   pointer-events: auto;
   border: 2px solid var(--ink);
@@ -373,6 +378,10 @@
   container-type: size;
   display: grid;
   place-items: center;
+}
+/* Keep the meter clear of the stage guide card (top-left on wide screens). */
+:has(> .fl-stage):has(> .gd:not([hidden]):not(.gd-docked) > .gd-card:not([hidden])) .fl-meter-scene {
+  padding-left: 350px;
 }
 .fl-meter-box {
   position: relative;
