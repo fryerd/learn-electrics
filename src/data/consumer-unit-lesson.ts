@@ -240,7 +240,7 @@ export const circuits: CircuitSpec[] = [
   {
     id: 'immersion',
     name: 'Immersion heater',
-    label: ['Immersion', ''],
+    label: ['Hot', 'water'],
     detail: '3 kW hot-water element',
     rating: 16,
     okRatings: [20],

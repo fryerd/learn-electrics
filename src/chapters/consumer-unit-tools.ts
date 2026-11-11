@@ -51,8 +51,8 @@ export function chartMarkup(curve: Curve, rating: number): string {
     <path class="cu-band-other" d="${bandPath(other)}"/>
     <path class="cu-band" d="${bandPath(curve)}"/>
     <rect class="cu-mag" x="${chartX(lo)}" y="${PY0}" width="${chartX(hi) - chartX(lo)}" height="${PY1 - PY0}"/>
-    <text class="cu-anno" x="${chartX(1.9)}" y="${chartY(1500)}">Overload</text>
-    <text class="cu-anno-s" x="${chartX(1.9)}" y="${chartY(1500) + 16}">bimetal strip heats up</text>
+    <text class="cu-anno" x="${chartX(curve === "B" ? 5.6 : 11)}" y="${chartY(1500)}">Overload</text>
+    <text class="cu-anno-s" x="${chartX(curve === "B" ? 5.6 : 11)}" y="${chartY(1500) + 16}">bimetal strip heats up</text>
     <text class="cu-anno" x="${PX1 - 8}" y="${chartY(0.03) - 22}" text-anchor="end">Short circuit</text>
     <text class="cu-anno-s" x="${PX1 - 8}" y="${chartY(0.03) - 6}" text-anchor="end">magnetic coil, instant</text>
     <text class="cu-mag-t" x="${(chartX(lo) + chartX(hi)) / 2}" y="${PY0 + 18}" text-anchor="middle">${lo}–${hi} × In</text>
