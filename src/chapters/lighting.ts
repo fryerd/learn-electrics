@@ -1,5 +1,6 @@
 import './lighting.css';
 import { QUIZ_PASS, coreNotes, intro, levels, quiz, reveals, targets } from '../data/lighting-lesson';
+import { mountGuide, pulse } from '../ui/guide';
 import { mountQuiz } from '../ui/quiz';
 import { createCircuitView } from './lighting-circuit';
 import { createExplorer } from './lighting-explorer';
@@ -44,6 +45,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
   let note = '';
   let cycle = 0;
   let analysis: Analysis = analyse(LEVELS[0].switches, wires[0]);
+  let guideRoot: HTMLElement | null = null;
 
   /* ------------------------------- stage ------------------------------- */
   stage.classList.add('lt-stage');
@@ -152,6 +154,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
     circuitHost.hidden = t === 'switches';
     if (t !== 'switches') renderWire();
     else renderSwitches();
+    placeGuide();
   };
   (['switches', 'wire', 'quiz'] as Tab[]).forEach((k) => q(`lt-tab-${k}`).addEventListener('click', () => setTab(k)));
 
@@ -295,6 +298,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
     li = i;
     note = '';
     renderWire();
+    placeGuide();
   };
 
   q('lt-view-wire').addEventListener('click', (e) => {
@@ -369,6 +373,101 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
   renderSwitches();
   renderWire();
   setTab('switches');
+
+  /* ------------------------------- stage guide ------------------------------- */
+  // The free corner depends on the picture: the switch plate leaves the top clear; level 1's circuit
+  // leaves the bottom right clear; levels 2 and 3 need the bottom for switches, so the card goes top right.
+  function placeGuide() {
+    if (!guideRoot) return;
+    const corner = tab === 'switches' ? 'top-left' : li === 0 ? 'bottom-right' : 'top-right';
+    guideRoot.classList.remove('gd-top-left', 'gd-top-right', 'gd-bottom-left', 'gd-bottom-right');
+    guideRoot.classList.add(`gd-${corner}`);
+  }
+  const setSpec = (s: SwitchSpec) => {
+    spec = s;
+    throws = [0, 0, 0];
+    setTab('switches');
+  };
+  const segRow = (name: string) => panel.querySelector(`[data-${name}]`)?.closest('.lt-seg-row');
+  const showLevel = (i: number) => {
+    setTab('wire');
+    setLevel(i);
+  };
+  mountGuide(
+    stage,
+    [
+      {
+        kicker: 'Gangs',
+        title: 'Three words describe any switch',
+        text: 'Gangs, poles and ways. Gangs is the easy one: how many separate switches share one faceplate. A 2-gang plate works two different lights.',
+        tryIt: 'Pick 2 or 3 Gangs and watch more rockers appear on the plate.',
+        onEnter: () => {
+          setSpec({ gangs: 1, poles: 1, ways: 1 });
+          pulse(segRow('gangs'));
+        },
+      },
+      {
+        kicker: 'Ways',
+        title: 'One-way or two-way',
+        text: 'Ways is how many positions each arm can connect to. A one-way switch just opens or closes. A two-way switch flips its common (COM) between L1 and L2, which lets two switches share one light.',
+        tryIt: 'Click the rocker on the picture and watch the arm swap from L1 to L2.',
+        onEnter: () => {
+          setSpec({ gangs: 1, poles: 1, ways: 2 });
+          pulse(segRow('ways'));
+        },
+      },
+      {
+        kicker: 'Poles',
+        title: 'More poles, more arms',
+        text: 'Poles is how many arms move together when you press one switch. A double-pole switch breaks line and neutral at once, which is why it is used to isolate things like a cooker.',
+        tryIt: 'Set Poles to 3: that is the isolator for a bathroom fan with an overrun timer.',
+        onEnter: () => {
+          setSpec({ gangs: 1, poles: 2, ways: 1 });
+          pulse(segRow('poles'));
+        },
+      },
+      {
+        kicker: 'Level 1',
+        title: 'Wire a one-way light',
+        text: 'The supply loops in to the ceiling rose, the lamp hangs from it, and a switch drop runs down to the switch. The switch always goes in the line, never the neutral.',
+        tryIt: 'Click a terminal, then another, to run a core. Stuck? Press “Show me a hint”.',
+        onEnter: () => {
+          showLevel(0);
+          pulse(q('lt-hint-btn'));
+        },
+      },
+      {
+        kicker: 'Level 2',
+        title: 'Two switches, one light',
+        text: 'For stairs, two two-way switches are joined by two strappers. The lamp lights only when both switches pick the same strapper, so either end can turn it on or off.',
+        tryIt: 'Once it is wired, press “Try every position” and watch the truth table.',
+        onEnter: () => {
+          showLevel(1);
+          pulse(panel.querySelector('[data-cycle]'));
+        },
+      },
+      {
+        kicker: 'Level 3',
+        title: 'Add an intermediate',
+        text: 'For three or more places, put an intermediate switch in the strappers. It either passes them straight through or swaps them over.',
+        tryIt: 'Wire it, then flip each switch in turn: any one of the three should change the light.',
+        onEnter: () => {
+          showLevel(2);
+          pulse(q('lt-flips'));
+        },
+      },
+      {
+        title: 'Now it is your turn',
+        text: 'Solve levels 1 and 2 yourself (without “Show the answer”), then pass the quiz to tick this chapter off.',
+        tryIt: 'Open the Quiz tab when you are ready.',
+        onEnter: () => pulse(q('lt-tab-quiz')),
+      },
+    ],
+    { position: 'top-left' },
+  );
+  // On wide screens the card is inside the stage; on phones it is docked just after #stage.
+  guideRoot = stage.querySelector<HTMLElement>(':scope > .gd') ?? (document.getElementById('stage')?.nextElementSibling as HTMLElement | null);
+  placeGuide();
 
   return {
     activate() {
