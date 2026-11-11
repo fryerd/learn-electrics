@@ -6,7 +6,7 @@ import { maxLength, type Result, type Setup } from '../chapters/fault-loop-model
 export const lesson = {
   title: 'The earth fault loop',
   intro:
-    'When a line conductor touches an earthed metal case, current races round a loop and back to the transformer. The more easily it flows, the faster the breaker trips. Drag the settings and watch the loop.',
+    'Change the supply, cable and breaker, and watch the loop. Then try the challenges.',
   meterTitle: 'Test it with a meter',
   meterIntro:
     'An earth fault loop tester measures Zs at a socket by briefly sending a small current round the loop. It also works out the prospective fault current: 230 V ÷ Zs.',

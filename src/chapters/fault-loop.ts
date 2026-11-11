@@ -1,5 +1,6 @@
 import './fault-loop.css';
 import { challenges, lesson, quiz, startSetup, supplies } from '../data/fault-loop-lesson';
+import { mountGuide, pulse } from '../ui/guide';
 import { mountQuiz } from '../ui/quiz';
 import {
   analyse,
@@ -634,6 +635,86 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
   renderChallenge();
   update();
   setPhase('flow');
+
+  /* ------------------------------ the stage guide ------------------------------ */
+  /** Put the loop back to the starting circuit, with some settings changed, and show the Loop tab. */
+  const load = (change: Partial<Setup> = {}) => {
+    showTab('loop');
+    Object.assign(s, startSetup, change);
+    supplyKind = s.ze >= 5 ? 'tt' : Math.abs(s.ze - 0.8) < 0.01 ? 'tns' : 'tncs';
+    loaded = -1;
+    update();
+  };
+  const cardOf = (e: Element) => e.closest('.slider-card') ?? e;
+
+  mountGuide(
+    stage,
+    [
+      {
+        title: 'When metal goes live',
+        text: 'If the line wire touches a metal case, current rushes through the case, back along the earth wire (the CPC) and home to the transformer. That round trip is the earth fault loop.',
+        tryIt: 'Follow the glowing dots from the transformer, through the spark and back along the bottom.',
+        onEnter: () => load(),
+      },
+      {
+        kicker: 'Ohms (Ω)',
+        title: 'Zs adds up the whole loop',
+        text: 'Zs = Ze + R1 + R2. Ze is the supply outside your home, R1 is your line wire and R2 your earth wire. The bar along the bottom stacks all three.',
+        tryIt: 'Drag the Run length slider and watch R1, R2 and the bar grow.',
+        onEnter: () => {
+          load();
+          pulse(cardOf(lenIn));
+        },
+      },
+      {
+        kicker: 'Amps (A)',
+        title: 'Low Zs, big current, fast trip',
+        text: 'The fault current is 230 V ÷ Zs. A type B breaker trips instantly at about 5 times its rating, so a healthy loop lets hundreds of amps flow and it trips in a flash.',
+        tryIt: 'Press “Play the fault” and watch the breaker trip in slow motion.',
+        onEnter: () => {
+          load();
+          pulse(playBtn);
+        },
+      },
+      {
+        kicker: '0.4 seconds',
+        title: 'Too much cable fails',
+        text: 'This radial is 55 m long. Zs is now too high, the current too small, and the metal case could stay live for longer than the 0.4 s allowed.',
+        tryIt: 'Play the fault, then pick thicker cables until the verdict says PASS.',
+        onEnter: () => {
+          load({ length: 55 });
+          pulse(panel.querySelector('.fl-cables'));
+        },
+      },
+      {
+        kicker: 'Type B or C',
+        title: 'The breaker sets the limit',
+        text: 'A type C needs about 10 times its rating to trip instantly, twice a type B, so its maximum Zs is about half. This garage circuit fails on a C32.',
+        tryIt: 'Switch to Type B, then try lower ratings and watch the 80% limit on the bar move.',
+        onEnter: () => {
+          load({ ze: 0.8, length: 20, type: 'C' });
+          pulse(panel.querySelector('[data-type]')?.parentElement);
+        },
+      },
+      {
+        kicker: 'TT supply',
+        title: 'An earth rod is not enough',
+        text: 'On a TT supply the fault current returns through the ground via your own earth rod, so Ze is far higher. Only a few amps flow, so an RCD has to do the job instead of the breaker.',
+        tryIt: 'Try any breaker: none pass. Then press TN-C-S to compare.',
+        onEnter: () => {
+          load({ ze: 21, length: 20, rating: 6 });
+          pulse(panel.querySelector('[data-supply]')?.parentElement);
+        },
+      },
+      {
+        title: 'Now test it yourself',
+        text: 'Electricians measure Zs with a loop tester and compare it with 80% of the maximum, because the cable warms up in use. Try the challenges, the meter, then the quiz.',
+        tryIt: 'Open the Meter tab and press TEST.',
+        onEnter: () => pulse(tabs.meter.btn),
+      },
+    ],
+    { position: 'top-left' },
+  );
 
   return {
     activate() {
