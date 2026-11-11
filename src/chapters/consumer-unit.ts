@@ -536,7 +536,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
           ${s.rating !== null ? `<li class="${ch.rating.state}">${ch.rating.msg}</li>` : ''}
           ${s.prot !== null ? `<li class="${ch.rcd.state}">${ch.rcd.msg}</li>` : ''}
         </ul>
-        <div class="wire-actions"><button type="button" class="ghost" id="cu-unplace">Take it out</button></div>`;
+        <div class="wire-actions"><button type="button" class="primary" id="cu-lock">Lock it in</button><button type="button" class="ghost" id="cu-unplace">Take it out</button></div>`;
     }
     // status
     const placed = ways.filter(Boolean).length;
@@ -622,7 +622,11 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
     const p = t.closest<HTMLElement>('[data-bprot]');
     if (r) settings[c].rating = Number(r.dataset.brate);
     else if (p) settings[c].prot = p.dataset.bprot as Protection;
-    else if (t.closest('#cu-unplace')) {
+    else if (t.closest('#cu-lock')) {
+      selWay = null; // done with this way: close the chooser, keep the settings
+      renderBuild();
+      return;
+    } else if (t.closest('#cu-unplace')) {
       ways[selWay!] = null;
       selWay = null;
     } else return;
