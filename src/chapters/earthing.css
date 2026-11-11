@@ -1,0 +1,688 @@
+/* --------------------------- chapter 3: supply and earthing --------------------------- */
+.er-scene {
+  position: absolute;
+  inset: 0;
+}
+.er-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+/* ground and buildings */
+.er-grass {
+  stroke: #7fae5b;
+  stroke-width: 4;
+}
+.er-wall {
+  fill: #fbfaf7;
+  stroke: var(--ink);
+  stroke-width: 3;
+  filter: drop-shadow(0 6px 10px rgba(29, 35, 43, 0.1));
+}
+.er-roof {
+  fill: #8d98a6;
+  stroke: var(--ink);
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+.er-tx-box {
+  fill: #dfe4ea;
+  stroke: var(--ink);
+  stroke-width: 3;
+  filter: drop-shadow(0 6px 10px rgba(29, 35, 43, 0.12));
+}
+.er-tx-core {
+  stroke: #6c7784;
+  stroke-width: 2.5;
+  fill: none;
+}
+.er-coil,
+.er-thin {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+.er-star {
+  fill: var(--ink);
+  stroke: #fff;
+  stroke-width: 2;
+}
+
+/* conductors (UK colours) */
+.er-svg path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.er-l {
+  stroke: #6b3f1d;
+  stroke-width: 4;
+}
+.er-n {
+  stroke: #1f5fbf;
+  stroke-width: 4;
+}
+.er-e {
+  stroke: #2f9e4f;
+  stroke-width: 4;
+}
+.er-e2 {
+  stroke: #f2c40f;
+  stroke-width: 4;
+  stroke-dasharray: 5 5;
+  stroke-linecap: butt !important;
+}
+.er-halo {
+  stroke: #fbfaf7;
+  stroke-width: 8;
+}
+.er-pen2 {
+  stroke: #f2c40f;
+  stroke-width: 2;
+  stroke-dasharray: 4 8;
+  stroke-linecap: butt !important;
+}
+.er-sheath {
+  stroke: #4a525c;
+  stroke-width: 30;
+  opacity: 0.9;
+}
+.er-tande {
+  stroke: #e6e3dc;
+  stroke-width: 18;
+}
+.er-joint {
+  fill: var(--ink);
+}
+.er-clamp-term {
+  fill: #b9c0c8;
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+.er-rod {
+  stroke: #b87333 !important;
+  stroke-width: 7 !important;
+}
+.er-pit {
+  fill: #9aa3ad;
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+.er-soilpath {
+  stroke: #8a6a3d;
+  stroke-width: 3;
+  stroke-dasharray: 2 7;
+}
+
+/* equipment */
+.er-cutout {
+  fill: #2b3138;
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+.er-fuse {
+  fill: #e9e3d3;
+}
+.er-meter {
+  fill: #eef0f2;
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+.er-meter-lcd {
+  fill: #b9d7c0;
+  stroke: #56635a;
+  stroke-width: 1.5;
+}
+.er-cu {
+  fill: #fff;
+  stroke: var(--ink);
+  stroke-width: 2.5;
+  filter: drop-shadow(0 3px 5px rgba(29, 35, 43, 0.12));
+}
+.er-mod {
+  fill: #eceae4;
+  stroke: #6c7784;
+  stroke-width: 1.5;
+}
+.er-mod-rcd {
+  fill: #dfe9f7;
+}
+.er-mod.is-tripped {
+  fill: var(--bad-bg);
+  stroke: var(--bad);
+}
+.er-lever {
+  fill: var(--ink);
+  transition: y 0.2s ease;
+}
+.er-lever.is-off {
+  fill: var(--bad);
+}
+.er-tiny {
+  font: 700 9px var(--font);
+  fill: var(--ink-soft);
+}
+.er-met {
+  fill: #c9a33b;
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+.er-stud {
+  fill: #fff6d6;
+  stroke: #6b5a1d;
+  stroke-width: 1;
+}
+.er-app-case {
+  fill: #f1f3f5;
+  stroke: #5d6873;
+  stroke-width: 3;
+  transition:
+    fill 0.25s ease,
+    stroke 0.25s ease;
+}
+.er-app-door {
+  fill: #d4d9de;
+  stroke: #5d6873;
+  stroke-width: 2.5;
+}
+.er-app-glass {
+  fill: #b9cde3;
+}
+.er-app.is-live .er-app-case {
+  fill: #fde3df;
+  stroke: var(--bad);
+}
+.er-spark {
+  stroke: #ff7a1a;
+  stroke-width: 3.5;
+}
+
+/* pipes */
+.er-pipe {
+  stroke-width: 9;
+  stroke-linecap: butt !important;
+}
+.er-pipe-pe {
+  stroke: #e8c21b;
+}
+.er-pipe-cu {
+  stroke: #c47a3c;
+}
+.er-pipe-main {
+  stroke: #8f7b66;
+}
+.er-gasmeter {
+  fill: #f3e9c4;
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+.er-valve {
+  fill: #c0392b !important;
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+.er-valve-stem {
+  stroke: var(--ink);
+  stroke-width: 3;
+}
+
+/* glows and the moving fault current */
+.er-glow {
+  stroke-width: 20;
+  opacity: 0.3;
+}
+.er-glow-return {
+  stroke: #2f9e4f;
+  animation: er-fade 0.5s ease both;
+}
+.er-glow-fault {
+  stroke: #ff6a1a;
+  opacity: 0.35;
+  animation: er-fade 0.3s ease both;
+}
+.er-swap {
+  animation: er-fade 0.45s ease both;
+}
+@keyframes er-fade {
+  from {
+    opacity: 0;
+  }
+}
+.er-dot {
+  fill: #ff5a1f;
+  stroke: #fff;
+  stroke-width: 1.5;
+}
+
+/* labels */
+.er-lbl {
+  font: 600 14px var(--font);
+  fill: var(--ink);
+  paint-order: stroke;
+  stroke: rgba(251, 250, 247, 0.9);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+  letter-spacing: 0.02em;
+}
+.er-lbl-b {
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.er-lbl-inv {
+  fill: #fff;
+  stroke: none;
+}
+.er-tall .er-lbl {
+  font-size: 16px;
+}
+.er-tall .er-lbl-b {
+  font-size: 15px;
+}
+
+/* bonding game */
+.er-spot {
+  cursor: pointer;
+  outline: none;
+}
+.er-hit {
+  fill: transparent;
+  stroke: none;
+}
+.er-ring {
+  fill: rgba(31, 95, 191, 0.12);
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  stroke-dasharray: 4 3;
+  transition:
+    r 0.15s ease,
+    fill 0.15s ease;
+}
+.er-spot:hover .er-ring,
+.er-spot.is-over .er-ring,
+.er-spot:focus-visible .er-ring {
+  fill: rgba(31, 95, 191, 0.3);
+  r: 15px;
+}
+.er-spot:focus-visible .er-ring {
+  stroke-width: 3.5;
+  stroke-dasharray: none;
+}
+.er-spot.is-placed .er-ring {
+  opacity: 0;
+}
+.er-clamp {
+  cursor: grab;
+}
+.er-clamp rect:first-child {
+  fill: #c9ced4;
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+.er-clamp.is-ok rect:first-child {
+  stroke: var(--good);
+  stroke-width: 3;
+}
+.er-clamp.is-bad rect:first-child {
+  stroke: var(--bad);
+  stroke-width: 3;
+}
+.er-tag {
+  fill: #fff;
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+.er-tag-mark {
+  stroke: var(--bad);
+  stroke-width: 1.8;
+}
+.er-bond.is-bad {
+  opacity: 0.55;
+}
+
+/* stage overlays */
+.er-card {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  max-width: min(320px, 44%);
+  background: rgba(251, 250, 247, 0.94);
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  padding: 8px 12px;
+  box-shadow: 0 4px 14px rgba(29, 35, 43, 0.08);
+  pointer-events: none;
+}
+.er-card b {
+  display: block;
+  font-size: 22px;
+  letter-spacing: 0.06em;
+  line-height: 1.1;
+}
+.er-card b span {
+  font-size: 15px;
+  color: var(--ink-soft);
+  letter-spacing: 0.04em;
+}
+.er-card small {
+  display: block;
+  font-size: 14px;
+  line-height: 1.3;
+  color: var(--ink-soft);
+  margin-top: 4px;
+}
+.er-key {
+  display: inline-block;
+  width: 18px;
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(47, 158, 79, 0.45);
+  margin-right: 6px;
+  vertical-align: 1px;
+}
+.er-toast {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  width: min(560px, calc(100% - 24px));
+  background: #fff;
+  border: 2px solid var(--line);
+  border-left: 6px solid var(--accent);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 15px;
+  line-height: 1.35;
+  box-shadow: 0 6px 18px rgba(29, 35, 43, 0.12);
+  animation: er-rise 0.25s ease both;
+}
+.er-toast[hidden] {
+  display: none;
+}
+.er-toast.is-ok {
+  border-left-color: var(--good);
+  background: var(--good-bg);
+}
+.er-toast.is-bad {
+  border-left-color: var(--bad);
+  background: var(--bad-bg);
+}
+.er-toast.is-warn {
+  border-left-color: #c9851a;
+  background: #fbf0d9;
+}
+@keyframes er-rise {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+}
+.er-tray {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(251, 250, 247, 0.94);
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  padding: 6px 10px;
+  box-shadow: 0 4px 14px rgba(29, 35, 43, 0.08);
+}
+.er-tray[hidden],
+.er-tray-clamp[hidden] {
+  display: none;
+}
+.er-tray-label {
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.er-tray.is-empty .er-tray-label::after {
+  content: ': all placed';
+}
+.er-tray-clamp {
+  width: 44px;
+  height: 44px;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  display: grid;
+  place-items: center;
+  cursor: grab;
+  touch-action: none;
+}
+.er-tray-clamp:hover {
+  border-color: var(--accent);
+}
+.er-tray-clamp i,
+.er-ghost i {
+  display: block;
+  width: 24px;
+  height: 14px;
+  border-radius: 3px;
+  background: #c9ced4;
+  border: 2px solid var(--ink);
+  box-shadow: 6px -6px 0 -2px repeating-linear-gradient(90deg, #2f9e4f 0 5px, #f2c40f 5px 10px);
+  position: relative;
+}
+.er-tray-clamp i::after,
+.er-ghost i::after {
+  content: '';
+  position: absolute;
+  left: 100%;
+  top: 3px;
+  width: 14px;
+  height: 4px;
+  background: repeating-linear-gradient(90deg, #2f9e4f 0 4px, #f2c40f 4px 8px);
+}
+.er-ghost {
+  position: fixed;
+  z-index: 50;
+  pointer-events: none;
+  transform: translate(-50%, -50%) scale(1.15);
+  filter: drop-shadow(0 6px 8px rgba(29, 35, 43, 0.25));
+}
+.er-dragging,
+.er-dragging * {
+  cursor: grabbing !important;
+}
+
+/* panel */
+.er-seg {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  padding: 4px;
+  margin-top: 6px;
+  background: var(--paper-2);
+  border-radius: 12px;
+}
+.er-seg button {
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  padding: 8px 4px;
+  font-weight: 700;
+  font-size: 17px;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.er-seg button small {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+.er-seg button[aria-pressed='true'] {
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 1px 4px rgba(29, 35, 43, 0.15);
+}
+.er-letters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.er-letter {
+  flex: 1 1 0;
+  min-width: 70px;
+  border: 2px solid var(--line);
+  background: var(--paper);
+  border-radius: 10px;
+  padding: 6px 8px;
+  animation: er-fade 0.35s ease both;
+}
+.er-letter b {
+  display: block;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--accent);
+}
+.er-letter span {
+  display: block;
+  font-size: 13px;
+  line-height: 1.25;
+  color: var(--ink-soft);
+  margin-top: 3px;
+}
+.er-summary {
+  margin: 10px 0 0;
+  font-size: 15px;
+}
+.er-note {
+  display: block;
+  margin-top: 6px;
+  color: var(--ink-soft);
+}
+.er-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 14px;
+}
+.er-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.er-check input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent);
+}
+.er-ze-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.er-ze-row small {
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+.ghost.er-small {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+.er-verdict {
+  margin-top: 12px;
+  font-size: 15px;
+}
+.er-goals {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+}
+.er-goals li {
+  position: relative;
+  padding-left: 24px;
+}
+.er-goals li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  background: #fff;
+}
+.er-goals li.is-done::before {
+  border-color: var(--good);
+  background: var(--good);
+  box-shadow: inset 0 0 0 3px #fff;
+}
+.er-goals li.is-done {
+  color: var(--ink-soft);
+}
+.uk.er-gap,
+#er-view-earth .uk,
+#er-view-bond .uk {
+  margin-top: 14px;
+}
+
+@media (max-width: 520px) {
+  .er-card {
+    max-width: 52%;
+    padding: 6px 9px;
+  }
+  .er-card b {
+    font-size: 18px;
+  }
+  .er-card small {
+    font-size: 12px;
+  }
+  .er-toast {
+    font-size: 14px;
+  }
+  .er-tray-label,
+  .er-tray.is-empty {
+    display: none;
+  }
+  .er-has-toast .er-card {
+    display: none;
+  }
+  .er-toast {
+    top: 10px;
+    bottom: auto;
+    animation-name: er-drop;
+  }
+  .er-tray {
+    top: auto;
+    right: auto;
+    bottom: 10px;
+    left: 10px;
+  }
+}
+@keyframes er-drop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -8px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .er-swap,
+  .er-glow,
+  .er-letter,
+  .er-toast {
+    animation: none;
+  }
+}
