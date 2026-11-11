@@ -5,6 +5,8 @@ const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as 
 
 export interface Panel {
   select(id: PartId | null): void;
+  /** Switch tab as if the learner clicked it (runs the same tab handler). */
+  showTab(tab: Tab): void;
 }
 
 export type Tab = 'parts' | 'wire' | 'quiz';
@@ -67,5 +69,5 @@ export function initPanel(onSelect: (id: PartId) => void, onTab: (tab: Tab) => v
   /* ------------------------------- quiz ------------------------------- */
   mountQuiz(viewQuiz, quiz, { retryHint: 'Have another look around the socket, then try again.' });
 
-  return { select };
+  return { select, showTab: (tab: Tab) => showTab(tab) };
 }
