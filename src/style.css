@@ -1050,3 +1050,25 @@ h1 {
   text-transform: uppercase;
   color: var(--ink-soft);
 }
+
+/* Very small screens: keep the header on one tidy line */
+@media (max-width: 480px) {
+  h1 {
+    font-size: 18px;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+  .tagline {
+    display: none;
+  }
+  .logo {
+    width: 32px;
+    height: 32px;
+  }
+  .progress-bar {
+    width: 40px;
+  }
+  .topbar {
+    gap: 8px;
+  }
+}

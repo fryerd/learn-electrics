@@ -34,7 +34,7 @@ export const chapters: Chapter[] = [
     act: 'From the street to your house',
     blurb: 'From the local transformer to the cut-out fuse and meter.',
     doing: ['Follow the current along the street', 'A "will my supply cope?" calculator'],
-    built: false,
+    built: true,
     icon: `<g ${S}><path d="M24 6 14 42M24 6l10 36M17 30h14M20 19h8M9 13h30"/></g>`,
   },
   {
@@ -44,7 +44,7 @@ export const chapters: Chapter[] = [
     act: 'From the street to your house',
     blurb: 'Why we earth, TN-S, TN-C-S and TT, and main bonding.',
     doing: ['Switch the earthing arrangement and watch the fault path', 'Place the bonding clamps'],
-    built: false,
+    built: true,
     icon: `<g ${S}><path d="M24 6v20M9 26h30M15 33h18M21 40h6"/></g>`,
   },
   {
@@ -54,7 +54,7 @@ export const chapters: Chapter[] = [
     act: 'Inside the consumer unit',
     blurb: 'Main switch, MCBs and RCDs, and which device suits which load.',
     doing: ['Pick the right device for each appliance', 'An RCD ramp and trip-time tester'],
-    built: false,
+    built: true,
     icon: `<g ${S}><rect x="8" y="8" width="32" height="32" rx="4"/><path d="M16 15v11M24 15v11M32 15v11M15 33h18"/></g>`,
   },
   {
@@ -64,7 +64,7 @@ export const chapters: Chapter[] = [
     act: 'Inside the consumer unit',
     blurb: 'Cable size, breaker and load: Ib ≤ In ≤ Iz, and volt drop.',
     doing: ['Size a circuit for a shower', 'Stretch the cable run and watch the volt drop'],
-    built: false,
+    built: true,
     icon: `<g ${S}><path d="M5 31C15 11 27 41 43 17" stroke="#6b3f1d" stroke-width="4"/><path d="M5 38C15 18 27 48 43 24" stroke="#1f5fbf" stroke-width="4"/></g>`,
   },
   {
@@ -74,7 +74,7 @@ export const chapters: Chapter[] = [
     act: 'Inside the consumer unit',
     blurb: 'Zs = Ze + (R1 + R2) and why a breaker trips.',
     doing: ['Build the loop with sliders', 'A virtual earth-fault-loop meter'],
-    built: false,
+    built: true,
     icon: `<g ${S}><path d="M35 14a14 14 0 1 0 5 11"/><path d="M36 5v10h10"/></g>`,
   },
   {
@@ -94,7 +94,7 @@ export const chapters: Chapter[] = [
     act: 'Out to the appliances',
     blurb: 'Gangs, poles and ways, one-way, two-way and intermediate.',
     doing: ['Wire lamp circuits and flip the switches', 'A two-way and intermediate puzzle'],
-    built: false,
+    built: true,
     icon: `<g ${S}><path d="M16 29a11 11 0 1 1 16 0c-2 2-3 4-3 7H19c0-3-1-5-3-7z"/><path d="M19 41h10"/></g>`,
   },
   {
@@ -104,7 +104,7 @@ export const chapters: Chapter[] = [
     act: 'Out to the appliances',
     blurb: 'Bathroom zones, the extractor fan circuit and IP ratings.',
     doing: ['Drag fittings into the right bathroom zones', 'Match IP ratings to places'],
-    built: false,
+    built: true,
     icon: `<g ${S}><path d="M10 14h16a9 9 0 0 1 9 9"/><path d="M22 27l-2 6M28 27l-2 6M34 27l-2 6M16 27l-2 6"/></g>`,
   },
   {
@@ -114,7 +114,7 @@ export const chapters: Chapter[] = [
     act: 'Rules and proof',
     blurb: 'Part P, BS 7671 and safe isolation.',
     doing: ['Put the safe-isolation steps in order', 'Is this job notifiable?'],
-    built: false,
+    built: true,
     icon: `<g ${S}><path d="M24 6l15 6v12c0 9-6 15-15 18-9-3-15-9-15-18V12z"/><path d="M17 24l5 5 9-10"/></g>`,
   },
   {
@@ -124,7 +124,7 @@ export const chapters: Chapter[] = [
     act: 'Rules and proof',
     blurb: 'The installation certificate, and a find-the-fault game.',
     doing: ['Fill in a certificate from test results', 'Find the planted faults'],
-    built: false,
+    built: true,
     icon: `<g ${S}><rect x="11" y="8" width="26" height="33" rx="3"/><path d="M18 8h12M17 20h14M17 27h14M17 34h8"/></g>`,
   },
 ];

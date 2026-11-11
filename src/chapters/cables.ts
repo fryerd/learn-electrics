@@ -311,6 +311,10 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
       cls = 'idle';
       title = 'Switched off';
       text = 'No current, no heat, no volt drop.';
+    } else if (ev.ib > design.breaker + 1e-9 && sim.temp < 71) {
+      cls = 'warn';
+      title = 'Breaker too small';
+      text = `The ${who} needs ${a1(ev.ib)} A but the breaker is only ${design.breaker} A, so it would trip as the load runs. Choose a bigger breaker.`;
     } else if (sim.temp >= 85) {
       cls = 'bad';
       title = 'The cable is cooking';
