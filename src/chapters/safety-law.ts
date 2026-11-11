@@ -890,7 +890,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
       card.innerHTML = `
         <div class="sf-card-where">All ${order.length} jobs done</div>
         <h3 class="sf-big-score">${right} / ${order.length}</h3>
-        <p class="sf-card-why">${right === order.length ? 'Perfect. You know what needs telling building control about.' : 'The rule of thumb: new circuits, consumer units and work in special locations are notifiable. Like-for-like swaps and repairs are not.'}</p>
+        <p class="sf-card-why">${right === order.length ? 'Perfect. You know what needs telling building control about.' : 'The rule of thumb: new circuits and consumer unit changes are notifiable. Like-for-like swaps and repairs are not. If in doubt, check Approved Document P.'}</p>
         <div class="sf-card-btns"><button type="button" class="primary" id="sf-nt-again">Shuffle and play again</button></div>`;
       $('#sf-nt-again').addEventListener('click', () => {
         order = shuffle(jobs);

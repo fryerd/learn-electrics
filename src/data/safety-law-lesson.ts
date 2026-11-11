@@ -130,7 +130,7 @@ export const jobs: Job[] = [
     title: 'Fit a new circuit for an electric shower',
     where: 'Bathroom, new cable from the consumer unit',
     notifiable: true,
-    why: 'Any new circuit is notifiable. A shower circuit is also in a special location.',
+    why: 'Any new circuit is notifiable, and a shower needs one of its own.',
   },
   {
     id: 'cu',
@@ -146,7 +146,7 @@ export const jobs: Job[] = [
     title: 'Swap a ceiling light fitting',
     where: 'Bedroom, like for like on the same circuit',
     notifiable: false,
-    why: 'Replacing a fitting on an existing circuit, outside a special location, is not notifiable.',
+    why: 'Replacing a fitting like for like on an existing circuit is not notifiable.',
   },
   {
     id: 'shed',
@@ -170,7 +170,7 @@ export const jobs: Job[] = [
     title: 'Add a socket to an existing circuit',
     where: 'Bedroom, extending the sockets circuit',
     notifiable: false,
-    why: 'In England, adding to an existing circuit is not notifiable unless it is in a special location such as a bathroom. It must still meet BS 7671 and be tested.',
+    why: 'In England, adding to an existing circuit is not normally notifiable. It must still meet BS 7671 and be tested, and the rules are different in Wales, so check Approved Document P or ask building control.',
     check: true,
   },
   {
@@ -178,8 +178,8 @@ export const jobs: Job[] = [
     icon: 'bathroom',
     title: 'Add a light to the bathroom lighting circuit',
     where: 'Room with a bath, existing circuit',
-    notifiable: true,
-    why: 'Adding to or altering a circuit in a special location (a room with a bath or shower) is notifiable in England.',
+    notifiable: false,
+    why: 'In England, adding a light to an existing bathroom circuit is not normally notifiable (only new circuits and consumer units are), but it must be done and tested to BS 7671. Wales has wider rules and the details change, so check Approved Document P or ask building control.',
     check: true,
   },
 ];
