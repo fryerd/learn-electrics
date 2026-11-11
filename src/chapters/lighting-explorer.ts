@@ -9,6 +9,7 @@ const POLE_H = 100;
 const INT_H = 130;
 const BLOCK_PAD = 18;
 const ROCKER_W = 64;
+const TOP = 74; // room for the status chip that sits top-right of the stage
 
 const el = <K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string, string | number> = {}, cls?: string) => {
   const e = document.createElementNS(NS, tag);
@@ -40,15 +41,35 @@ export function createExplorer(host: HTMLElement, onFlip: (gang: number) => void
     const int = spec.ways === 'int';
     const rows = int ? 1 : spec.poles;
     const innerH = int ? INT_H : rows * POLE_H;
-    const blockW = BLOCK_PAD * 3 + ROCKER_W + UNIT_W;
-    const blockH = innerH + BLOCK_PAD * 2 + 34;
+    const bw = BLOCK_PAD * 2 + UNIT_W;
+    const bh = innerH + BLOCK_PAD * 2 + 34;
     const gap = 22;
-    const W = tall ? blockW + 40 : spec.gangs * blockW + (spec.gangs - 1) * gap + 40;
-    const H = tall ? spec.gangs * blockH + (spec.gangs - 1) * gap + 40 : blockH + 40;
+    // the front of the switch: one plate with a rocker per gang (poles and ways do not show from the front)
+    const plateW = 120 + spec.gangs * 100;
+    const plateH = 230;
+    // behind the plate: one diagram per gang, side by side or stacked, whichever fits the stage better
+    const rowD = { w: spec.gangs * bw + (spec.gangs - 1) * gap, h: bh };
+    const colD = { w: bw, h: spec.gangs * bh + (spec.gangs - 1) * gap };
+    const hostR = host.getBoundingClientRect();
+    const hw = hostR.width || 800;
+    const hh = hostR.height || 520;
+    const sizeFor = (d: { w: number; h: number }) =>
+      tall
+        ? { W: Math.max(plateW, d.w) + 40, H: TOP + plateH + 60 + d.h + 40 }
+        : { W: plateW + 80 + d.w + 40, H: Math.max(plateH, d.h) + TOP + 46 };
+    const fit = (d: { w: number; h: number }) => {
+      const z = sizeFor(d);
+      return Math.min(hw / z.W, hh / z.H);
+    };
+    const stacked = fit(colD) > fit(rowD);
+    const D = stacked ? colD : rowD;
+    const { W, H } = sizeFor(D);
     // keep a sensible minimum so a single small switch is not blown up to fill the stage
-    const VW = Math.max(W, tall ? 380 : 620);
+    const VW = Math.max(W, tall ? 380 : 700);
     const VH = Math.max(H, tall ? 520 : 400);
-    svg.setAttribute('viewBox', `${(W - VW) / 2} ${(H - VH) / 2} ${VW} ${VH}`);
+    const ox = (W - VW) / 2;
+    const oy = (H - VH) / 2;
+    svg.setAttribute('viewBox', `${ox} ${oy} ${VW} ${VH}`);
 
     const joined = specConnections(spec, positions);
     const on = new Set(joined.flat());
@@ -59,19 +80,23 @@ export function createExplorer(host: HTMLElement, onFlip: (gang: number) => void
       `A ${spec.gangs}-gang switch. ${joined.length ? `Joined now: ${joined.map(([a, b]) => `${a} to ${b}`).join(', ')}.` : 'Nothing is joined: every contact is open.'}`,
     );
 
+    // ---- front of the switch
+    const px = tall ? 20 + (Math.max(plateW, D.w) - plateW) / 2 : 20;
+    const py = tall ? TOP : TOP + (Math.max(plateH, D.h) - plateH) / 2;
+    svg.append(txt(px, py - 14, 'FRONT', 'lt-cap', 'start'));
+    svg.append(el('rect', { x: px, y: py, width: plateW, height: plateH, rx: 20 }, 'lt-plate'));
+    for (const sx of [px + 30, px + plateW - 30]) {
+      svg.append(el('circle', { cx: sx, cy: py + plateH / 2, r: 8 }, 'lt-plate-screw'));
+      svg.append(el('line', { x1: sx - 5, y1: py + plateH / 2 + 5, x2: sx + 5, y2: py + plateH / 2 - 5 }, 'lt-plate-slot'));
+    }
     for (let g = 1; g <= spec.gangs; g++) {
-      const bx = tall ? 20 : 20 + (g - 1) * (blockW + gap);
-      const by = tall ? 20 + (g - 1) * (blockH + gap) : 20;
       const pos = positions[g - 1] ?? 0;
-      svg.append(el('rect', { x: bx, y: by, width: blockW, height: blockH, rx: 18 }, 'lt-box'));
-      svg.append(txt(bx + BLOCK_PAD, by + 28, `GANG ${g}`, 'lt-title', 'start'));
-
-      // rocker
-      const rx = bx + BLOCK_PAD;
-      const ry = by + 34 + BLOCK_PAD + innerH / 2 - 50;
+      const rcx = px + 110 + (g - 1) * 100;
+      const rx = rcx - ROCKER_W / 2 + 4;
+      const ry = py + plateH / 2 - 50;
       const rocker = el('g', { tabindex: 0, role: 'button' }, `lt-rocker${pos ? ' down' : ''}`);
       rocker.setAttribute('aria-label', `Throw gang ${g}`);
-      rocker.append(el('rect', { x: rx, y: ry, width: ROCKER_W, height: 100, rx: 12 }, 'lt-rocker-body'), el('rect', { x: rx + 8, y: ry + 8, width: ROCKER_W - 16, height: 40, rx: 8 }, 'lt-rocker-pad'));
+      rocker.append(el('rect', { x: rx, y: ry, width: ROCKER_W - 8, height: 100, rx: 12 }, 'lt-rocker-body'), el('rect', { x: rx + 6, y: ry + 8, width: ROCKER_W - 20, height: 40, rx: 8 }, 'lt-rocker-pad'));
       const flip = () => onFlip(g - 1);
       rocker.addEventListener('click', flip);
       rocker.addEventListener('keydown', (e) => {
@@ -81,8 +106,19 @@ export function createExplorer(host: HTMLElement, onFlip: (gang: number) => void
         }
       });
       svg.append(rocker);
+      if (spec.gangs > 1) svg.append(txt(rcx, py + plateH - 16, String(g), 'lt-plate-n'));
+    }
 
-      const ux = bx + BLOCK_PAD * 2 + ROCKER_W;
+    // ---- behind the plate
+    const dx0 = tall ? 20 + (Math.max(plateW, D.w) - D.w) / 2 : px + plateW + 80;
+    const dy0 = tall ? py + plateH + 70 : TOP + (Math.max(plateH, D.h) - D.h) / 2;
+    svg.append(txt(dx0, dy0 - 14, 'BEHIND THE SWITCH', 'lt-cap', 'start'));
+    const drawGang = (g: number, bx: number, by: number) => {
+      const pos = positions[g - 1] ?? 0;
+      svg.append(el('rect', { x: bx, y: by, width: bw, height: bh, rx: 18 }, 'lt-box'));
+      svg.append(txt(bx + BLOCK_PAD, by + 28, `GANG ${g}`, 'lt-title', 'start'));
+
+      const ux = bx + BLOCK_PAD;
       const uy0 = by + 34 + BLOCK_PAD;
       svg.append(el('rect', { x: ux, y: uy0, width: UNIT_W, height: innerH, rx: 12 }, 'lt-inner'));
 
@@ -108,7 +144,7 @@ export function createExplorer(host: HTMLElement, onFlip: (gang: number) => void
           svg.append(txt(x, y + (y < uy0 + innerH / 2 ? -16 : 28), label, 'lt-term-label'));
         }
         svg.append(txt(ux + UNIT_W / 2, uy0 + innerH / 2 + 5, pos ? 'crossed' : 'straight', 'lt-sub'));
-        continue;
+        return;
       }
 
       for (let p = 1; p <= spec.poles; p++) {
@@ -143,6 +179,9 @@ export function createExplorer(host: HTMLElement, onFlip: (gang: number) => void
         }
         if (spec.poles > 1) svg.append(txt(ux + 10, uy + 18, `pole ${p}`, 'lt-tiny', 'start'));
       }
+    };
+    for (let g = 1; g <= spec.gangs; g++) {
+      drawGang(g, stacked ? dx0 : dx0 + (g - 1) * (bw + gap), stacked ? dy0 + (g - 1) * (bh + gap) : dy0);
     }
   };
 

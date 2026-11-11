@@ -379,7 +379,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
   // leaves the bottom right clear; levels 2 and 3 need the bottom for switches, so the card goes top right.
   function placeGuide() {
     if (!guideRoot) return;
-    const corner = tab === 'switches' ? 'top-left' : li === 0 ? 'bottom-right' : 'top-right';
+    const corner = tab === 'switches' ? 'top-right' : li === 0 ? 'bottom-right' : 'top-right';
     guideRoot.classList.remove('gd-top-left', 'gd-top-right', 'gd-bottom-left', 'gd-bottom-right');
     guideRoot.classList.add(`gd-${corner}`);
   }
@@ -463,7 +463,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
         onEnter: () => pulse(q('lt-tab-quiz')),
       },
     ],
-    { position: 'top-left' },
+    { position: 'top-right' },
   );
   // On wide screens the card is inside the stage; on phones it is docked just after #stage.
   guideRoot = stage.querySelector<HTMLElement>(':scope > .gd') ?? (document.getElementById('stage')?.nextElementSibling as HTMLElement | null);

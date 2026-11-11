@@ -727,3 +727,40 @@
     display: none;
   }
 }
+
+/* switch explorer: the real front plate */
+.lt-plate {
+  fill: #f8f8f5;
+  stroke: #cfcfc8;
+  stroke-width: 2.5;
+  filter: drop-shadow(0 6px 10px rgba(29, 35, 43, 0.18));
+}
+.lt-plate-screw {
+  fill: #c9ccd0;
+  stroke: #8d9298;
+  stroke-width: 1.5;
+}
+.lt-plate-slot {
+  stroke: #6e747b;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.lt-plate-n {
+  font: 700 15px var(--font);
+  fill: var(--ink-soft);
+  text-anchor: middle;
+}
+.lt-cap {
+  font: 700 12.5px var(--font);
+  letter-spacing: 0.16em;
+  fill: var(--ink-soft);
+}
+.lt-explorer .lt-rocker-body {
+  fill: #fdfdfb;
+  stroke: #d2d2cb;
+}
+.lt-explorer .lt-rocker-pad {
+  fill: #e6e6e0;
+  stroke: #c3c3bb;
+  stroke-width: 1.5;
+}
