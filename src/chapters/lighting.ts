@@ -1,6 +1,6 @@
 import './lighting.css';
 import { QUIZ_PASS, coreNotes, intro, levels, quiz, reveals, targets } from '../data/lighting-lesson';
-import { mountGuide, pulse } from '../ui/guide';
+import { mountGuide, pulse, type GuideStep } from '../ui/guide';
 import { mountQuiz } from '../ui/quiz';
 import { createCircuitView } from './lighting-circuit';
 import { createExplorer } from './lighting-explorer';
@@ -34,6 +34,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
   let spec: SwitchSpec = { gangs: 1, poles: 1, ways: 1 };
   let throws = [0, 0, 0];
   const made = new Set<string>();
+  let guidedSpec = false;
 
   let li = 0;
   const wires = LEVELS.map((l) => [...l.prewired]);
@@ -49,10 +50,43 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
 
   /* ------------------------------- stage ------------------------------- */
   stage.classList.add('lt-stage');
+  const seg = (name: string, label: string, opts: [string, string][]) => `
+    <div class="lt-seg-row"><span class="wire-label" id="lt-${name}-label">${label}</span>
+      <div class="lt-seg" role="group" aria-labelledby="lt-${name}-label">
+        ${opts.map(([v, t]) => `<button type="button" data-${name}="${v}">${t}</button>`).join('')}
+      </div></div>`;
   stage.innerHTML = `
-    <div class="lt-layer" id="lt-explorer-host"></div>
-    <div class="lt-layer" id="lt-circuit-host" hidden></div>
-    <div class="lt-status" id="lt-status" aria-live="polite"></div>`;
+    <div class="lt-main">
+      <div class="lt-layer" id="lt-explorer-host"></div>
+      <div class="lt-layer" id="lt-circuit-host" hidden></div>
+      <div class="lt-status" id="lt-status" aria-live="polite"></div>
+    </div>
+    <div class="lt-tray" id="lt-tray" hidden>
+      <div class="lt-tg" data-g="gangs">${seg('gangs', 'Gangs', [['1', '1'], ['2', '2'], ['3', '3']])}</div>
+      <div class="lt-tg" data-g="ways">${seg('ways', 'Ways', [['1', '1-way'], ['2', '2-way'], ['int', 'Intermediate']])}</div>
+      <div class="lt-tg" data-g="poles">${seg('poles', 'Poles', [['1', '1'], ['2', '2'], ['3', '3']])}</div>
+      <div class="lt-tg" data-g="name"><div class="lt-name" id="lt-name" aria-live="polite"></div></div>
+      <div class="lt-tg" data-g="flips">
+        <div class="lt-flips" id="lt-flips"></div>
+        <table class="lt-truth" id="lt-truth"></table>
+      </div>
+      <div class="lt-tg" data-g="checks">
+        <div class="wire-feedback" aria-live="polite">
+          <ul class="wire-results" id="lt-checks"></ul>
+          <p class="wire-summary" id="lt-summary"></p>
+          <div class="lt-note" id="lt-note"></div>
+          <p class="lt-hint" id="lt-hint"></p>
+        </div>
+        <div class="wire-actions">
+          <button type="button" class="ghost" id="lt-hint-btn">Show me a hint</button>
+          <button type="button" class="ghost" id="lt-answer-btn">Show the answer</button>
+          <button type="button" class="ghost" id="lt-reset-btn">Start again</button>
+        </div>
+      </div>
+    </div>`;
+  const tray = stage.querySelector<HTMLElement>('#lt-tray')!;
+  const switchIds = ['gangs', 'ways', 'poles', 'name'];
+  const wireIds = ['flips', 'checks'];
   const explorerHost = stage.querySelector<HTMLElement>('#lt-explorer-host')!;
   const circuitHost = stage.querySelector<HTMLElement>('#lt-circuit-host')!;
   const statusEl = stage.querySelector<HTMLElement>('#lt-status')!;
@@ -87,11 +121,6 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
   });
 
   /* ------------------------------- panel ------------------------------- */
-  const seg = (name: string, label: string, opts: [string, string][]) => `
-    <div class="lt-seg-row"><span class="wire-label" id="lt-${name}-label">${label}</span>
-      <div class="lt-seg" role="group" aria-labelledby="lt-${name}-label">
-        ${opts.map(([v, t]) => `<button type="button" data-${name}="${v}">${t}</button>`).join('')}
-      </div></div>`;
   const reveal = (r: { title: string; body: string }) => `<details class="lt-reveal"><summary>${r.title}</summary><div>${r.body}</div></details>`;
 
   panel.innerHTML = `
@@ -102,33 +131,10 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
     </div>
     <section role="tabpanel" id="lt-view-switches">
       <div class="detail"><h2>${intro.title}</h2><p>${intro.text}</p></div>
-      ${seg('gangs', 'Gangs', [['1', '1'], ['2', '2'], ['3', '3']])}
-      ${seg('poles', 'Poles', [['1', '1'], ['2', '2'], ['3', '3']])}
-      ${seg('ways', 'Ways', [['1', '1-way'], ['2', '2-way'], ['int', 'Intermediate']])}
-      <div class="lt-throws" id="lt-throws"></div>
-      <div class="lt-name" id="lt-name" aria-live="polite"></div>
-      <div class="wire-label lt-gap">Can you make…</div>
-      <ul class="lt-targets" id="lt-targets"></ul>
+      <p class="lt-note-line">Click the rockers on the picture to throw them. The guide on the left has the controls and the challenges.</p>
       <div class="uk"><b>UK practice</b>Most UK plate switches are made two-way, even when only one is fitted: wire COM and L1 and it works as a one-way switch.</div>
     </section>
     <section role="tabpanel" id="lt-view-wire" hidden>
-      <div class="lt-levels" role="group" aria-label="Level">
-        ${LEVELS.map((l, i) => `<button type="button" data-level="${i}"><small>Level ${i + 1}</small><b>${levels[l.id].tab}</b><i class="lt-tick" aria-hidden="true"></i></button>`).join('')}
-      </div>
-      <div class="detail"><h2 id="lt-level-title"></h2><p id="lt-level-goal"></p></div>
-      <div class="lt-flips" id="lt-flips"></div>
-      <table class="lt-truth" id="lt-truth"></table>
-      <div class="wire-feedback" aria-live="polite">
-        <ul class="wire-results" id="lt-checks"></ul>
-        <p class="wire-summary" id="lt-summary"></p>
-        <div class="lt-note" id="lt-note"></div>
-        <p class="lt-hint" id="lt-hint"></p>
-      </div>
-      <div class="wire-actions">
-        <button type="button" class="ghost" id="lt-hint-btn">Show me a hint</button>
-        <button type="button" class="ghost" id="lt-answer-btn">Show the answer</button>
-        <button type="button" class="ghost" id="lt-reset-btn">Start again</button>
-      </div>
       <details class="lt-reveal lt-wirelist"><summary id="lt-wire-count">Wires</summary><ul id="lt-wires"></ul></details>
       <div class="wire-label lt-gap">Find out more</div>
       ${reveal(reveals.loopIn)}
@@ -141,7 +147,8 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
       <div id="lt-quiz"></div>
     </section>`;
 
-  const q = <T extends HTMLElement = HTMLElement>(id: string) => panel.querySelector<T>(`#${id}`)!;
+  const q = <T extends HTMLElement = HTMLElement>(id: string) => (panel.querySelector<T>(`#${id}`) ?? stage.querySelector<T>(`#${id}`))!;
+  const all = <T extends HTMLElement>(sel: string) => [...panel.querySelectorAll<T>(sel), ...stage.querySelectorAll<T>(sel)];
 
   /* ------------------------------- tabs ------------------------------- */
   const setTab = (t: Tab) => {
@@ -154,6 +161,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
     circuitHost.hidden = t === 'switches';
     if (t !== 'switches') renderWire();
     else renderSwitches();
+    if (typeof showGroups === 'function') showGroups(t === 'switches' ? switchIds : t === 'wire' ? wireIds : []);
     placeGuide();
   };
   (['switches', 'wire', 'quiz'] as Tab[]).forEach((k) => q(`lt-tab-${k}`).addEventListener('click', () => setTab(k)));
@@ -161,40 +169,36 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
   /* ----------------------------- switches tab ----------------------------- */
   const renderSwitches = () => {
     const int = spec.ways === 'int';
-    panel.querySelectorAll<HTMLButtonElement>('[data-gangs]').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.gangs) === spec.gangs)));
-    panel.querySelectorAll<HTMLButtonElement>('[data-poles]').forEach((b) => {
+    all<HTMLButtonElement>('[data-gangs]').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.gangs) === spec.gangs)));
+    all<HTMLButtonElement>('[data-poles]').forEach((b) => {
       b.setAttribute('aria-pressed', String(!int && Number(b.dataset.poles) === spec.poles));
       b.disabled = int;
     });
-    panel.querySelectorAll<HTMLButtonElement>('[data-ways]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.ways === String(spec.ways))));
-    q('lt-throws').innerHTML = Array.from(
-      { length: spec.gangs },
-      (_, g) => `<button type="button" class="ghost" data-throw="${g}">Throw gang ${g + 1}</button>`,
-    ).join('');
+    all<HTMLButtonElement>('[data-ways]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.ways === String(spec.ways))));
     const nm = nameSpec(spec);
     q('lt-name').innerHTML = `<small>${int ? `${spec.gangs} gang · intermediate` : `${spec.gangs} gang · ${spec.poles} pole · ${spec.ways} way`}</small>
       <b>${nm.name}</b><p>${nm.use}</p>
       <span class="lt-pill ${nm.common ? 'ok' : ''}">${nm.common ? 'Common in UK homes' : 'Unusual in a house'}</span>`;
 
     const hit = targets.find((t) => t.spec.gangs === spec.gangs && t.spec.ways === spec.ways && (spec.ways === 'int' || t.spec.poles === spec.poles));
-    if (hit) made.add(hit.id);
-    q('lt-targets').innerHTML = targets
-      .map((t) => `<li class="${made.has(t.id) ? 'ok' : ''}${hit?.id === t.id ? ' now' : ''}"><i aria-hidden="true"></i><span>${t.label}${made.has(t.id) ? ` <b>${nameSpec(t.spec).name}</b>` : ''}</span></li>`)
-      .join('');
+    const wasMade = hit ? made.has(hit.id) : true;
+    if (hit && !guidedSpec) made.add(hit.id);
+    if (hit && !wasMade && !guidedSpec) markMade(hit.id);
     explorer.render(spec, throws);
     if (tab === 'switches') statusEl.innerHTML = `<b>${nm.name}</b><span>Click a rocker to throw it</span>`;
   };
-  panel.addEventListener('click', (e) => {
+  const onSwitchClick = (e: Event) => {
     const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button');
     if (!b) return;
     if (b.dataset.gangs) spec = { ...spec, gangs: Number(b.dataset.gangs) };
     else if (b.dataset.poles) spec = { ...spec, poles: Number(b.dataset.poles) };
     else if (b.dataset.ways) spec = { ...spec, ways: b.dataset.ways === 'int' ? 'int' : (Number(b.dataset.ways) as 1 | 2) };
-    else if (b.dataset.throw) throws[Number(b.dataset.throw)] ^= 1;
     else return;
-    if (!b.dataset.throw) throws = [0, 0, 0];
+    throws = [0, 0, 0];
     renderSwitches();
-  });
+  };
+  panel.addEventListener('click', onSwitchClick);
+  stage.querySelector('#lt-tray')!.addEventListener('click', onSwitchClick);
 
   /* ------------------------------- wire tab ------------------------------- */
   const level = () => LEVELS[li];
@@ -218,14 +222,6 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
       return w ? [w.a, w.b] : [];
     })() : [];
     view.render({ level: L, wires: wires[li], positions: positions[li], state: combo, hint: hintTerms });
-
-    panel.querySelectorAll<HTMLButtonElement>('[data-level]').forEach((b) => {
-      const i = Number(b.dataset.level);
-      b.setAttribute('aria-pressed', String(i === li));
-      b.classList.toggle('done', solved.has(LEVELS[i].id));
-    });
-    q('lt-level-title').textContent = copy.title;
-    q('lt-level-goal').textContent = copy.goal;
 
     q('lt-flips').innerHTML =
       L.switches.map((sw, i) => `<button type="button" class="ghost" data-flip="${i}">Flip ${sw.label.toLowerCase()} <b>${posName(i, positions[li][i])}</b></button>`).join('') +
@@ -301,7 +297,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
     placeGuide();
   };
 
-  q('lt-view-wire').addEventListener('click', (e) => {
+  const onWireClick = (e: Event) => {
     const t = e.target as HTMLElement;
     const b = t.closest<HTMLButtonElement>('button');
     const row = t.closest<HTMLElement>('[data-combo]');
@@ -312,8 +308,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
       return;
     }
     if (!b) return;
-    if (b.dataset.level) setLevel(Number(b.dataset.level));
-    else if (b.dataset.flip) {
+    if (b.dataset.flip) {
       stopCycle();
       const i = Number(b.dataset.flip);
       positions[li][i] = 1 - positions[li][i];
@@ -343,7 +338,9 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
       note = '';
       renderWire();
     }
-  });
+  };
+  q('lt-view-wire').addEventListener('click', onWireClick);
+  stage.querySelector('#lt-tray')!.addEventListener('click', onWireClick);
   q('lt-truth').addEventListener('keydown', (e) => {
     const row = (e.target as HTMLElement).closest<HTMLElement>('[data-combo]');
     if (row && (e.key === 'Enter' || e.key === ' ')) {
@@ -386,85 +383,130 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
   const setSpec = (s: SwitchSpec) => {
     spec = s;
     throws = [0, 0, 0];
+    guidedSpec = true; // set up by the guide: it does not count as the learner making the switch
     setTab('switches');
+    guidedSpec = false;
   };
-  const segRow = (name: string) => panel.querySelector(`[data-${name}]`)?.closest('.lt-seg-row');
+  /** Show only the controls this step is about. */
+  function showGroups(ids: string[]) {
+    tray.querySelectorAll<HTMLElement>('.lt-tg').forEach((g) => (g.hidden = !ids.includes(g.dataset.g!)));
+    tray.hidden = ids.length === 0;
+  }
+  const segRow = (name: string) => tray.querySelector(`[data-${name}]`)?.closest('.lt-seg-row');
   const showLevel = (i: number) => {
     setTab('wire');
     setLevel(i);
+    showGroups(wireIds);
   };
-  mountGuide(
-    stage,
-    [
-      {
-        kicker: 'Gangs',
-        title: 'Three words describe any switch',
-        text: 'Gangs, poles and ways. Gangs is the easy one: how many separate switches share one faceplate. A 2-gang plate works two different lights.',
-        tryIt: 'Pick 2 or 3 Gangs and watch more rockers appear on the plate.',
-        onEnter: () => {
-          setSpec({ gangs: 1, poles: 1, ways: 1 });
-          pulse(segRow('gangs'));
-        },
+  const seen = new Set<number>();
+  let refreshing = false;
+  const MK_AT = 3;
+  const makeStep = (t: (typeof targets)[number], i: number): GuideStep => ({
+    kicker: `Make it · ${i + 1} of ${targets.length}`,
+    title: t.label,
+    text: 'Use Gangs, Ways and Poles under the picture to build the switch for the job. The front of the plate does not change with poles or ways: only what is behind it does.',
+    tryIt: 'Match the switch to the job. Its name appears under the picture when you have it.',
+    onEnter: () => {
+      if (refreshing) return;
+      if (!seen.has(i)) {
+        seen.add(i);
+        setSpec({ gangs: 1, poles: 1, ways: 1 });
+      } else {
+        guidedSpec = true; // arriving on a step never counts as making the switch
+        setTab('switches');
+        guidedSpec = false;
+      }
+      showGroups(switchIds);
+    },
+  });
+  const steps: GuideStep[] = [
+    {
+      kicker: 'Gangs',
+      title: 'Three words describe any switch',
+      text: 'Gangs, poles and ways. Gangs is the easy one: how many separate switches share one faceplate. A 2-gang plate works two different lights.',
+      tryIt: 'Pick 2 or 3 Gangs and watch more rockers appear on the plate.',
+      onEnter: () => {
+        if (refreshing) return;
+        setSpec({ gangs: 1, poles: 1, ways: 1 });
+        showGroups(['gangs', 'name']);
+        pulse(segRow('gangs'));
       },
-      {
-        kicker: 'Ways',
-        title: 'One-way or two-way',
-        text: 'Ways is how many positions each arm can connect to. A one-way switch just opens or closes. A two-way switch flips its common (COM) between L1 and L2, which lets two switches share one light.',
-        tryIt: 'Click the rocker on the picture and watch the arm swap from L1 to L2.',
-        onEnter: () => {
-          setSpec({ gangs: 1, poles: 1, ways: 2 });
-          pulse(segRow('ways'));
-        },
+    },
+    {
+      kicker: 'Ways',
+      title: 'One-way or two-way',
+      text: 'Ways is how many positions each arm can connect to. A one-way switch just opens or closes. A two-way switch flips its common (COM) between L1 and L2, which lets two switches share one light.',
+      tryIt: 'Click the rocker on the picture and watch the arm swap from L1 to L2.',
+      onEnter: () => {
+        setSpec({ gangs: 1, poles: 1, ways: 2 });
+        showGroups(['ways', 'name']);
+        pulse(segRow('ways'));
       },
-      {
-        kicker: 'Poles',
-        title: 'More poles, more arms',
-        text: 'Poles is how many arms move together when you press one switch. A double-pole switch breaks line and neutral at once, which is why it is used to isolate things like a cooker.',
-        tryIt: 'Set Poles to 3: that is the isolator for a bathroom fan with an overrun timer.',
-        onEnter: () => {
-          setSpec({ gangs: 1, poles: 2, ways: 1 });
-          pulse(segRow('poles'));
-        },
+    },
+    {
+      kicker: 'Poles',
+      title: 'More poles, more arms',
+      text: 'Poles is how many arms move together when you press one switch. A double-pole switch breaks line and neutral at once, which is why it is used to isolate things like a cooker.',
+      tryIt: 'Set Poles to 3: that is the isolator for a bathroom fan with an overrun timer.',
+      onEnter: () => {
+        setSpec({ gangs: 1, poles: 2, ways: 1 });
+        showGroups(['poles', 'name']);
+        pulse(segRow('poles'));
       },
-      {
-        kicker: 'Level 1',
-        title: 'Wire a one-way light',
-        text: 'The supply loops in to the ceiling rose, the lamp hangs from it, and a switch drop runs down to the switch. The switch always goes in the line, never the neutral.',
-        tryIt: 'Click a terminal, then another, to run a core. Stuck? Press “Show me a hint”.',
-        onEnter: () => {
-          showLevel(0);
-          pulse(q('lt-hint-btn'));
-        },
+    },
+    ...targets.map(makeStep),
+    {
+      kicker: 'Level 1',
+      title: 'Wire a one-way light',
+      text: 'The supply loops in to the ceiling rose, the lamp hangs from it, and a switch drop runs down to the switch. The switch always goes in the line, never the neutral. Click a terminal, then another, to run a core.',
+      tryIt: 'Stuck? Press “Show me a hint” under the picture.',
+      onEnter: () => {
+        showLevel(0);
+        pulse(q('lt-hint-btn'));
       },
-      {
-        kicker: 'Level 2',
-        title: 'Two switches, one light',
-        text: 'For stairs, two two-way switches are joined by two strappers. The lamp lights only when both switches pick the same strapper, so either end can turn it on or off.',
-        tryIt: 'Once it is wired, press “Try every position” and watch the truth table.',
-        onEnter: () => {
-          showLevel(1);
-          pulse(panel.querySelector('[data-cycle]'));
-        },
+    },
+    {
+      kicker: 'Level 2',
+      title: 'Two switches, one light',
+      text: 'For stairs, two two-way switches are joined by two strappers. The lamp lights only when both switches pick the same strapper, so either end can turn it on or off.',
+      tryIt: 'Once it is wired, press “Try every position” and watch the truth table.',
+      onEnter: () => {
+        showLevel(1);
+        pulse(tray.querySelector('[data-cycle]'));
       },
-      {
-        kicker: 'Level 3',
-        title: 'Add an intermediate',
-        text: 'For three or more places, put an intermediate switch in the strappers. It either passes them straight through or swaps them over.',
-        tryIt: 'Wire it, then flip each switch in turn: any one of the three should change the light.',
-        onEnter: () => {
-          showLevel(2);
-          pulse(q('lt-flips'));
-        },
+    },
+    {
+      kicker: 'Level 3',
+      title: 'Add an intermediate',
+      text: 'For three or more places, put an intermediate switch in the strappers. It either passes them straight through or swaps them over.',
+      tryIt: 'Wire it, then flip each switch in turn: any one of the three should change the light.',
+      onEnter: () => {
+        showLevel(2);
+        pulse(q('lt-flips'));
       },
-      {
-        title: 'Now it is your turn',
-        text: 'Solve levels 1 and 2 yourself (without “Show the answer”), then pass the quiz to tick this chapter off.',
-        tryIt: 'Open the Quiz tab when you are ready.',
-        onEnter: () => pulse(q('lt-tab-quiz')),
+    },
+    {
+      title: 'Now it is your turn',
+      text: 'Solve levels 1 and 2 yourself (without “Show the answer”), then pass the quiz to tick this chapter off.',
+      tryIt: 'Open the Quiz tab when you are ready.',
+      onEnter: () => {
+        showGroups([]);
+        pulse(q('lt-tab-quiz'));
       },
-    ],
-    { position: 'top-right' },
-  );
+    },
+  ];
+  const guide = mountGuide(stage, steps, { position: 'top-right' });
+  /** A challenge switch was just made: tick its step. */
+  function markMade(id: string) {
+    const i = targets.findIndex((t) => t.id === id);
+    if (i < 0) return;
+    steps[MK_AT + i].kicker = `Make it · ${i + 1} of ${targets.length} · done ✓`;
+    if (guide.current() === MK_AT + i) {
+      refreshing = true;
+      guide.go(MK_AT + i);
+      refreshing = false;
+    }
+  }
   // On wide screens the card is inside the stage; on phones it is docked just after #stage.
   guideRoot = stage.querySelector<HTMLElement>(':scope > .gd') ?? (document.getElementById('stage')?.nextElementSibling as HTMLElement | null);
   placeGuide();

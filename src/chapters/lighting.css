@@ -764,3 +764,38 @@
   stroke: #c3c3bb;
   stroke-width: 1.5;
 }
+
+/* --- controls live on the stage, under the picture (the guide shows one group per step) --- */
+.lt-stage {
+  display: flex;
+  flex-direction: column;
+}
+.lt-main {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+.lt-tray {
+  flex: none;
+  max-height: 46%;
+  overflow: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 22px;
+  align-items: flex-start;
+  padding: 8px 14px 12px;
+  background: var(--card);
+  border-top: 2px solid var(--line);
+}
+.lt-tray[hidden],
+.lt-tg[hidden] {
+  display: none;
+}
+.lt-tg {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+.lt-note-line {
+  font-size: 14.5px;
+  color: var(--ink-soft);
+}
