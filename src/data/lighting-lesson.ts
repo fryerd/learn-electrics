@@ -5,7 +5,7 @@ import type { LevelId, SwitchSpec } from '../chapters/lighting-sim';
 
 export const intro = {
   title: 'Gangs, poles and ways',
-  text: 'Every light switch can be described with three words. <b>Gangs</b>: how many switches share one faceplate. <b>Poles</b>: how many separate arms move together when you press one switch. <b>Ways</b>: how many positions each arm can connect to. Change them and watch the contacts inside.',
+  text: 'Build a switch from <b>gangs</b>, <b>poles</b> and <b>ways</b>, and watch the contacts inside.',
 };
 
 export interface ExplorerTarget {
