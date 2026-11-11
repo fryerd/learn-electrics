@@ -1361,3 +1361,19 @@
     display: none;
   }
 }
+
+/* While the stage guide card is open (bottom-right on wide screens), feedback toasts sit beside it. */
+.sf-root:has(~ .gd:not(.gd-docked) .gd-card:not([hidden])) .sf-toast {
+  left: 14px;
+  max-width: calc(100% - 330px - 42px);
+  transform: translate(0, 16px);
+}
+.sf-root:has(~ .gd:not(.gd-docked) .gd-card:not([hidden])) .sf-toast.sf-show {
+  transform: translate(0, 0);
+}
+.sf-notify,
+.sf-layers,
+.sf-golden {
+  right: var(--sf-gd-r, 0px);
+  bottom: var(--sf-gd-b, 0px);
+}

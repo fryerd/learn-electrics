@@ -27,6 +27,7 @@ import {
   type JobIcon,
   type LayerId,
 } from '../data/safety-law-lesson';
+import { mountGuide, pulse } from '../ui/guide';
 import { mountQuiz } from '../ui/quiz';
 import type { ChapterMount } from './types';
 
@@ -58,9 +59,10 @@ const WIDE: Layout = {
   kit: [490, 50],
   socket: [680, 90],
   prover: [20, 400],
-  tester: [300, 352],
-  testerCap: [262, 470],
-  tools: [640, 395],
+  // Tester and tools sit left of centre so the guide card (bottom-right) never hides them.
+  tester: [390, 352],
+  testerCap: [354, 470],
+  tools: [160, 400],
   colleague: [318, 150],
   benchY: 365,
   cable: 'M260 30 V22 Q260 14 268 14 H742 Q750 14 750 22 V90',
@@ -380,8 +382,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
     <section role="tabpanel" id="sf-view-notify" aria-labelledby="sf-tab-notify" hidden>
       <div class="detail">
         <h2>Is this job notifiable?</h2>
-        <p>In England, some electrical jobs in a home must be notified to building control. Usually a registered electrician self-certifies the job through a competent person scheme; otherwise it goes through building control directly.</p>
-        <p>Decide for each job on the card.</p>
+        <p>Decide for each job on the card. The guide on the picture explains the rule of thumb.</p>
       </div>
       <div class="readouts">
         <div class="readout"><small>Score</small><b id="sf-nt-score">0 / 0</b></div>
@@ -395,7 +396,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
     <section role="tabpanel" id="sf-view-rules" aria-labelledby="sf-tab-rules" hidden>
       <div class="detail">
         <h2>Where the rules come from</h2>
-        <p><b>Law</b> says what you must achieve. <b>The standard</b>, BS 7671, says how an installation should be built so that it meets the law. <b>Guidance</b> shows how to do that in practice.</p>
+        <p>Pick a layer: <b>law</b>, <b>the standard</b> (BS 7671) or <b>guidance</b>.</p>
       </div>
       <div class="sf-seg" role="group" aria-label="Choose a layer">
         <button type="button" class="ghost" data-layer="law" aria-pressed="false">Law</button>
@@ -1005,6 +1006,107 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
     renderSort();
     p$<HTMLElement>(`#sf-sort [data-i="${i}"][data-l="${b.dataset.l}"]`).focus();
   });
+
+  /* ======================================= GUIDE ======================================= */
+  // SVG parts of the workbench use the chapter's own glow (box-shadow does not show on SVG).
+  const guidesBefore = new Set(document.querySelectorAll('.gd'));
+  mountGuide(
+    stage,
+    [
+      {
+        kicker: 'Safe isolation',
+        title: 'Dead before you touch',
+        text: 'You are about to change a socket on circuit 4. Switched off is not the same as safe: the circuit must be proved dead before anyone touches a conductor.',
+        tryIt: 'Click the circuit chart to find which breaker feeds the socket.',
+        onEnter: () => {
+          showTab('isolate');
+          glow('#sf-chart');
+        },
+      },
+      {
+        kicker: 'Isolate and lock off',
+        title: 'Switch it off and keep it off',
+        text: 'Turn off the right breaker, then lock it off and tag it. A breaker that is only switched off can be switched back on by someone else while you work.',
+        tryIt: 'Switch off breaker 4 on the consumer unit, then click the lock-off kit.',
+        onEnter: () => {
+          showTab('isolate');
+          glow('#sf-cu');
+        },
+      },
+      {
+        kicker: 'Prove, test, prove',
+        title: 'Trust the tester, not the switch',
+        text: 'Prove the voltage indicator works on the proving unit, test the socket between all three pairs (L–N, L–E, N–E), then prove the tester again. A dead reading only counts if the tester worked before and after.',
+        tryIt: 'Click the proving unit, then the socket, then the proving unit again.',
+        onEnter: () => {
+          showTab('isolate');
+          glow('#sf-prover');
+        },
+      },
+      {
+        kicker: 'Building regulations',
+        title: 'Is the job notifiable?',
+        text: 'In England some home electrical jobs must be notified to building control, usually through a registered electrician’s scheme. Rule of thumb: new circuits and consumer unit changes are, like-for-like swaps usually are not. Check Approved Document P; Wales differs.',
+        tryIt: 'Decide on the job card: Notifiable or Not notifiable.',
+        onEnter: () => {
+          showTab('notify');
+          pulse($('#sf-card'));
+        },
+      },
+      {
+        kicker: 'Law, standard, guidance',
+        title: 'Where the rules come from',
+        text: 'The law says what you must achieve. BS 7671 says how to build an installation that meets it. Guidance shows how to do the work in practice.',
+        tryIt: 'Click each layer of the pyramid to see what sits in it.',
+        onEnter: () => {
+          showTab('rules');
+          toggleGolden(false);
+          pulse(root.querySelector('.sf-pyr'));
+        },
+      },
+      {
+        title: 'The golden rules',
+        text: 'A short card of habits to carry onto every job, however small.',
+        tryIt: 'Read the card, then try the law, standard or guidance sorter on the right.',
+        onEnter: () => {
+          showTab('rules');
+          toggleGolden(true);
+          pulse(p$('#sf-sort'));
+        },
+      },
+      {
+        title: 'Now it is your turn',
+        text: 'Finish the safe-isolation challenge on the workbench, then score 75% or better in the quiz to tick this chapter off.',
+        tryIt: 'Open the Quiz tab when you are ready.',
+        onEnter: () => {
+          showTab('isolate');
+          pulse(p$('#sf-tab-quiz'));
+        },
+      },
+    ],
+    { position: 'bottom-right' },
+  );
+
+  // The card floats over the stage on wide screens. The workbench is laid out around it; the
+  // centred scenes (job card, layers, golden rules) are inset so the card never hides them.
+  const gd = [...document.querySelectorAll<HTMLElement>('.gd')].find((el) => !guidesBefore.has(el));
+  const gdCard = gd?.querySelector<HTMLElement>('.gd-card');
+  const fitGuide = () => {
+    let r = 0;
+    let b = 0;
+    if (gd && gdCard && !gd.classList.contains('gd-docked') && !gdCard.hidden) {
+      const roomLeft = stage.clientWidth - gdCard.offsetWidth - 28;
+      if (roomLeft >= 460) r = gdCard.offsetWidth + 22;
+      else b = gdCard.offsetHeight + 22;
+    }
+    root.style.setProperty('--sf-gd-r', `${r}px`);
+    root.style.setProperty('--sf-gd-b', `${b}px`);
+  };
+  if (gdCard) {
+    const gro = new ResizeObserver(fitGuide);
+    gro.observe(gdCard);
+    gro.observe(stage);
+  }
 
   /* ======================================= START ======================================= */
   resetScene();

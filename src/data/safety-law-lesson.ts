@@ -5,7 +5,7 @@ import type { InfoId, SlipId, StepId } from './safety-law-isolation';
 
 export const intro = {
   title: 'Safe isolation',
-  text: 'You are about to change a socket on circuit 4. Make it safe to work on: click the things on the bench in the right order. Get the order wrong and you will see what could happen.',
+  text: 'Make the socket on circuit 4 safe to work on: click the things on the bench in the right order.',
 };
 
 /** The seven safe-isolation steps, revealed one by one as the learner gets them right. */
