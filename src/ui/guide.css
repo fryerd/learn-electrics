@@ -245,3 +245,16 @@
 .gd-docked .gd-open {
   margin: 0;
 }
+
+/* Longer guides: keep the buttons on one line and the dots small. */
+.gd-back,
+.gd-next {
+  white-space: nowrap;
+}
+.gd-dots {
+  gap: 4px;
+}
+.gd-dot {
+  width: 8px;
+  height: 8px;
+}

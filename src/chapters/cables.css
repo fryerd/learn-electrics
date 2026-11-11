@@ -743,3 +743,57 @@
     font-size: 11px;
   }
 }
+
+/* --- controls live on the stage, under the picture (the guide shows one group per step) --- */
+.cb-stage {
+  display: flex;
+  flex-direction: column;
+}
+.cb-scene {
+  position: relative;
+  inset: auto;
+  flex: 1;
+  min-height: 0;
+}
+.cb-tray {
+  flex: none;
+  max-height: 46%;
+  overflow: auto;
+  padding: 8px 14px 12px;
+  background: var(--card);
+  border-top: 2px solid var(--line);
+}
+.cb-tray .cb-rule {
+  margin: 0 0 6px;
+}
+.cb-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  align-items: flex-start;
+}
+.cb-group {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+.cb-group[hidden] {
+  display: none;
+}
+.cb-tray.cb-bare .cb-groups {
+  display: none;
+}
+.cb-tray .cb-rule > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  padding: 3px 8px;
+}
+.cb-tray .cb-rule b,
+.cb-tray .cb-rule small,
+.cb-tray .cb-rule span {
+  display: inline;
+}
+.cb-tray .cb-rule b {
+  font-size: 18px;
+}

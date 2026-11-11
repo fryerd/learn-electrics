@@ -16,7 +16,7 @@ import {
   type MethodId,
   type Size,
 } from '../data/cables-lesson';
-import { mountGuide, pulse } from '../ui/guide';
+import { mountGuide, pulse, type GuideStep } from '../ui/guide';
 import { mountQuiz } from '../ui/quiz';
 import {
   AMBIENT,
@@ -54,7 +54,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
   let tries = 0;
   const done = new Set<ChallengeId>();
   /** True while the design is one the stage guide set up, so the challenges are not ticked for the learner. */
-  let guided = false;
+  let guided = true;
   // Any real input from the learner ends that.
   panel.addEventListener('pointerdown', () => (guided = false), true);
   panel.addEventListener('keydown', () => (guided = false), true);
@@ -63,6 +63,11 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
   }, true);
 
   /* ------------------------------ the stage ------------------------------ */
+  const chips = <T extends string | number>(name: string, items: { v: T; html: string }[], cls = '') =>
+    `<div class="cb-seg ${cls}" role="group" aria-label="${name}">${items
+      .map((i) => `<button type="button" class="cb-opt" data-${name}="${i.v}">${i.html}</button>`)
+      .join('')}</div>`;
+
   stage.innerHTML = `
     <div class="cb-stage">
       <div class="cb-scene"></div>
@@ -72,16 +77,63 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
         <button type="button" class="primary cb-reset" id="cb-reset-stage" hidden>Reset breaker</button>
       </div>
       <p class="cb-sr" aria-live="polite" id="cb-live"></p>
+      <div class="cb-tray" id="cb-tray">
+        <div class="cb-rule" aria-label="Ib is at most In, which is at most Iz">
+          <div><b>Ib</b><small>the load</small><span id="cb-r-ib"></span></div><i>≤</i>
+          <div><b>In</b><small>the breaker</small><span id="cb-r-in"></span></div><i>≤</i>
+          <div><b>Iz</b><small>the cable</small><span id="cb-r-iz"></span></div>
+        </div>
+        <div class="cb-groups">
+          <div class="cb-group" data-g="app"><div class="wire-label">The load</div>
+            ${chips('app', APPLIANCES.map((a) => ({ v: a.id, html: a.label })), 'cb-two')}
+            <p class="cb-worked" id="cb-ib-line"></p>
+            <p class="cb-note" id="cb-app-note"></p>
+          </div>
+          <div class="cb-group" data-g="brk"><div class="wire-label">Breaker rating In</div>
+            ${chips('brk', BREAKERS.map((b) => ({ v: b, html: `${b} A` })), 'cb-five')}
+          </div>
+          <div class="cb-group" data-g="size"><div class="wire-label">Cable size (twin and earth)</div>
+            ${chips('size', SIZES.map((s) => ({ v: s, html: `${sizeTxt(s)}<small>mm²</small>` })), 'cb-seven')}
+          </div>
+          <div class="cb-group" data-g="method"><div class="wire-label">How it is installed</div>
+            ${chips('method', METHODS.map((m) => ({ v: m.id, html: `<b>${m.id} · ${m.name}</b><small>${m.detail}</small>` })), 'cb-methods')}
+            ${chips('group', GROUPING.map((g) => ({ v: g.n, html: `${g.label}<small>× ${g.factor.toFixed(1)}</small>` })), 'cb-three')}
+            <p class="cb-worked" id="cb-iz-line"></p>
+          </div>
+          <div class="cb-group" data-g="len"><div class="wire-label">Stretch the run</div>
+            <div class="slider-card">
+              <label for="cb-len">Cable length <b id="cb-len-out">20 m</b></label>
+              <input type="range" id="cb-len" min="2" max="100" step="1" value="20" />
+            </div>
+            <div class="cb-lenbar" aria-hidden="true"><i id="cb-lenbar-ok"></i><span id="cb-lenbar-max"></span></div>
+            <p class="cb-worked" id="cb-vd-line"></p>
+          </div>
+          <div class="cb-group" data-g="test"><div class="wire-label">Push more current</div>
+            <div class="slider-card">
+              <label for="cb-amps">Current drawn <b id="cb-amps-out"></b></label>
+              <input type="range" id="cb-amps" min="0" max="100" step="0.5" value="37" />
+            </div>
+            <div class="wire-actions">
+              <button type="button" class="ghost" id="cb-normal">Normal load</button>
+              <button type="button" class="ghost" id="cb-over">Overload (1.5×)</button>
+              <button type="button" class="primary" id="cb-reset" hidden>Reset breaker</button>
+            </div>
+          </div>
+          <div class="cb-group" data-g="checks"><div class="wire-label">Live checks</div>
+            <ul class="wire-results cb-checks" id="cb-checks" aria-live="polite"></ul>
+            <p class="wire-summary" id="cb-summary"></p>
+            <div class="wire-actions">
+              <button type="button" class="ghost" id="cb-suggest" disabled>Suggest a design</button>
+              <span class="wire-note" id="cb-suggest-note">Have a go yourself first.</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>`;
   const scene = createScene(stage.querySelector<HTMLElement>('.cb-scene')!, reduced);
   const sq = <T extends HTMLElement>(id: string) => stage.querySelector<T>(`#${id}`)!;
 
   /* ------------------------------ the panel ------------------------------ */
-  const chips = <T extends string | number>(name: string, items: { v: T; html: string }[], cls = '') =>
-    `<div class="cb-seg ${cls}" role="group" aria-label="${name}">${items
-      .map((i) => `<button type="button" class="cb-opt" data-${name}="${i.v}">${i.html}</button>`)
-      .join('')}</div>`;
-
   panel.innerHTML = `
     <div class="tabs" role="tablist">
       <button type="button" role="tab" id="cb-tab-design" aria-selected="true" aria-controls="cb-view-design">Design</button>
@@ -90,67 +142,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
     </div>
 
     <section role="tabpanel" id="cb-view-design" aria-labelledby="cb-tab-design">
-      <div class="detail"><h2>${cables.title}</h2><p>${cables.intro}</p></div>
-      <div class="cb-rule" aria-label="Ib is at most In, which is at most Iz">
-        <div><b>Ib</b><small>the load</small><span id="cb-r-ib"></span></div><i>≤</i>
-        <div><b>In</b><small>the breaker</small><span id="cb-r-in"></span></div><i>≤</i>
-        <div><b>Iz</b><small>the cable</small><span id="cb-r-iz"></span></div>
-      </div>
-
-      <ul class="cb-challenges" id="cb-challenges">
-        ${CHALLENGES.map((c) => `<li data-ch="${c.id}"><span class="cb-tick" aria-hidden="true">${TICK}</span><span>${c.text}</span></li>`).join('')}
-      </ul>
-
-      <div class="cb-step"><div class="wire-label"><span class="cb-n">1</span> The load</div>
-        ${chips('app', APPLIANCES.map((a) => ({ v: a.id, html: a.label })), 'cb-two')}
-        <p class="cb-worked" id="cb-ib-line"></p>
-        <p class="cb-note" id="cb-app-note"></p>
-      </div>
-
-      <div class="cb-step"><div class="wire-label"><span class="cb-n">2</span> Breaker rating In</div>
-        ${chips('brk', BREAKERS.map((b) => ({ v: b, html: `${b} A` })), 'cb-five')}
-      </div>
-
-      <div class="cb-step"><div class="wire-label"><span class="cb-n">3</span> Cable size (twin and earth)</div>
-        ${chips('size', SIZES.map((s) => ({ v: s, html: `${sizeTxt(s)}<small>mm²</small>` })), 'cb-seven')}
-      </div>
-
-      <div class="cb-step"><div class="wire-label"><span class="cb-n">4</span> How it is installed</div>
-        ${chips('method', METHODS.map((m) => ({ v: m.id, html: `<b>${m.id} · ${m.name}</b><small>${m.detail}</small>` })), 'cb-methods')}
-        ${chips('group', GROUPING.map((g) => ({ v: g.n, html: `${g.label}<small>× ${g.factor.toFixed(1)}</small>` })), 'cb-three')}
-        <p class="cb-worked" id="cb-iz-line"></p>
-      </div>
-
-      <div class="cb-step"><div class="wire-label"><span class="cb-n">5</span> Stretch the run</div>
-        <div class="slider-card">
-          <label for="cb-len">Cable length <b id="cb-len-out">20 m</b></label>
-          <input type="range" id="cb-len" min="2" max="100" step="1" value="20" />
-        </div>
-        <div class="cb-lenbar" aria-hidden="true"><i id="cb-lenbar-ok"></i><span id="cb-lenbar-max"></span></div>
-        <p class="cb-worked" id="cb-vd-line"></p>
-      </div>
-
-      <div class="wire-label cb-gap">Live checks</div>
-      <ul class="wire-results cb-checks" id="cb-checks" aria-live="polite"></ul>
-      <p class="wire-summary" id="cb-summary"></p>
-      <div class="wire-actions">
-        <button type="button" class="ghost" id="cb-suggest" disabled>Suggest a design</button>
-        <span class="wire-note" id="cb-suggest-note">Have a go yourself first.</span>
-      </div>
-
-      <div class="cb-step cb-test"><div class="wire-label">Stress test: push more current</div>
-        <p class="cb-note">The breaker is there to protect the cable. Push the current up and see who gives in first: the breaker or the cable.</p>
-        <div class="slider-card">
-          <label for="cb-amps">Current drawn <b id="cb-amps-out"></b></label>
-          <input type="range" id="cb-amps" min="0" max="100" step="0.5" value="37" />
-        </div>
-        <div class="wire-actions">
-          <button type="button" class="ghost" id="cb-normal">Normal load</button>
-          <button type="button" class="ghost" id="cb-over">Overload (1.5×)</button>
-          <button type="button" class="primary" id="cb-reset" hidden>Reset breaker</button>
-        </div>
-      </div>
-
+      <div class="detail"><h2>${cables.title}</h2><p>${cables.intro}</p><p class="cb-note">Every control now sits under the picture, and the guide on the left walks you through them one at a time.</p></div>
       <div class="uk"><b>UK standards</b>BS 7671 (the 18th Edition) asks for Ib ≤ In ≤ Iz, and recommends keeping volt drop within 3% (6.9 V) for lighting and 5% (11.5 V) for other circuits fed from the public supply. The figures here are simplified for learning: real design uses the full tables, applies several correction factors at once (grouping, hot surroundings, thermal insulation) and checks fault protection too.</div>
     </section>
 
@@ -185,7 +177,8 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
 
     <section role="tabpanel" id="cb-view-quiz" aria-labelledby="cb-tab-quiz" hidden></section>`;
 
-  const q = <T extends HTMLElement>(id: string) => panel.querySelector<T>(`#${id}`)!;
+  const q = <T extends HTMLElement>(id: string) => (panel.querySelector<T>(`#${id}`) ?? stage.querySelector<T>(`#${id}`))!;
+  const all = <T extends HTMLElement>(sel: string) => [...panel.querySelectorAll<T>(sel), ...stage.querySelectorAll<T>(sel)];
 
   // tabs
   const tabIds: Tab[] = ['design', 'calc', 'quiz'];
@@ -220,7 +213,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
   };
 
   const bind = (name: string, apply: (v: string) => void) =>
-    panel.querySelectorAll<HTMLButtonElement>(`[data-${name}]`).forEach((b) =>
+    all<HTMLButtonElement>(`[data-${name}]`).forEach((b) =>
       b.addEventListener('click', () => {
         apply(b.dataset[name]!);
         onDesignChange(name !== 'app');
@@ -301,7 +294,9 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
   const markChallenge = (id: ChallengeId) => {
     if (guided || done.has(id)) return;
     done.add(id);
-    q('cb-challenges').querySelector(`[data-ch="${id}"]`)?.classList.add('ok');
+    const i = CHALLENGES.findIndex((c) => c.id === id);
+    steps[CH_AT + i].kicker = `Challenge ${i + 1} of 3 · done ✓`;
+    if (guide.current() === CH_AT + i) guide.go(CH_AT + i);
   };
 
   /** Stage status card and the parts of the panel that depend on the simulation. */
@@ -355,7 +350,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
     const app = ev.app;
 
     const press = (name: string, v: string | number) =>
-      panel.querySelectorAll<HTMLButtonElement>(`[data-${name}]`).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset[name] === String(v))));
+      all<HTMLButtonElement>(`[data-${name}]`).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset[name] === String(v))));
     press('app', design.applianceId);
     press('brk', design.breaker);
     press('size', design.size);
@@ -421,77 +416,144 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
     showTab('design');
     onDesignChange(false);
   };
-  const chipsOf = (name: string) => panel.querySelector(`[data-${name}]`)?.closest('.cb-seg');
-  mountGuide(
-    stage,
-    [
-      {
-        kicker: 'Ib ≤ In ≤ Iz',
-        title: 'Three numbers, one deal',
-        text: 'Every circuit balances three currents: what the load needs (Ib), what the breaker allows (In) and what the cable can carry (Iz). The breaker sits in the middle.',
-        tryIt: 'Find the Ib ≤ In ≤ Iz strip at the top of the panel. Here an 8.5 kW shower is happy on 6 mm² cable.',
-        onEnter: () => {
-          setDesign({ applianceId: 'sh85', breaker: 40, size: 6, method: 'C', group: 1, length: 20 });
-          pulse(q('cb-r-ib').closest('.cb-rule'));
-        },
+  const chipsOf = (name: string) => stage.querySelector(`[data-${name}]`)?.closest('.cb-seg');
+  const tray = sq('cb-tray');
+  /** Show only the controls this step is about; the Ib ≤ In ≤ Iz strip stays on screen throughout. */
+  const showGroups = (ids: string[]) => {
+    tray.querySelectorAll<HTMLElement>('.cb-group').forEach((g) => (g.hidden = !ids.includes(g.dataset.g!)));
+    tray.classList.toggle('cb-bare', ids.length === 0);
+  };
+  const seen = new Set<number>();
+  /** Set the scene for a challenge the first time only, so coming back keeps the learner's work. */
+  const firstTime = (i: number, fn: () => void) => {
+    if (!seen.has(i)) {
+      seen.add(i);
+      fn();
+    }
+  };
+  const SHOWER: Partial<Design> = { applianceId: 'sh85', breaker: 40, size: 6, method: 'C', group: 1 };
+  const CH_AT = 7;
+  const steps: GuideStep[] = [
+    {
+      kicker: 'Ib ≤ In ≤ Iz',
+      title: 'Three numbers, one deal',
+      text: 'Every circuit balances three currents: what the load needs (Ib), what the breaker allows (In) and what the cable can carry (Iz). The breaker sits in the middle.',
+      tryIt: 'Read the strip under the picture. Here an 8.5 kW shower is happy on 6 mm² cable.',
+      onEnter: () => {
+        setDesign({ ...SHOWER, length: 20 });
+        showGroups([]);
+        pulse(q('cb-r-ib').closest('.cb-rule'));
       },
-      {
-        kicker: 'Ib · the load',
-        title: 'Start with what the appliance needs',
-        text: 'The design current is the power divided by the voltage: Ib = P ÷ 230. A bigger shower draws more current, so everything after it has to be bigger too.',
-        tryIt: 'Pick the 10.5 kW shower and watch Ib and the checks change.',
-        onEnter: () => pulse(chipsOf('app')),
+    },
+    {
+      kicker: 'Ib · the load',
+      title: 'Start with what the appliance needs',
+      text: 'The design current is the power divided by the voltage: Ib = P ÷ 230. A bigger shower draws more current, so everything after it has to be bigger too.',
+      tryIt: 'Pick the 10.5 kW shower and watch Ib and the picture change.',
+      onEnter: () => {
+        setDesign(SHOWER);
+        showGroups(['app']);
+        pulse(chipsOf('app'));
       },
-      {
-        kicker: 'In · the breaker',
-        title: 'The breaker must cover the load',
-        text: 'The breaker rating must be at least the design current, or it would trip every time the appliance runs. The 8.5 kW shower needs about 37 A.',
-        tryIt: 'Choose a 32 A breaker and read the warning at the top of the picture. Then go back to 40 A.',
-        onEnter: () => {
-          setDesign({ applianceId: 'sh85', breaker: 40, size: 6, method: 'C', group: 1 });
-          pulse(chipsOf('brk'));
-        },
+    },
+    {
+      kicker: 'In · the breaker',
+      title: 'The breaker must cover the load',
+      text: 'The breaker rating must be at least the design current, or it would trip every time the appliance runs. The 8.5 kW shower needs about 37 A.',
+      tryIt: 'Choose a 32 A breaker and read the warning at the top of the picture. Then go back to 40 A.',
+      onEnter: () => {
+        setDesign(SHOWER);
+        showGroups(['brk']);
+        pulse(chipsOf('brk'));
       },
-      {
-        kicker: 'Iz · the cable',
-        title: 'Where a cable runs changes what it can carry',
-        text: 'Current heats a cable. Clipped to a wall, the heat escapes; buried in insulation or bunched with other cables, it cannot, so the same cable carries less.',
-        tryIt: 'Switch from “Clipped direct” to “In insulation” and watch Iz fall below the breaker.',
-        onEnter: () => {
-          setDesign({ applianceId: 'sh85', breaker: 40, size: 6, method: 'C', group: 1 });
-          pulse(chipsOf('method'));
-        },
+    },
+    {
+      kicker: 'Iz · the cable',
+      title: 'A thicker cable carries more',
+      text: 'The cable has to carry at least what the breaker lets through. A thin cable heats up; a thick one stays cool but costs more.',
+      tryIt: 'Pick 4 mm² and watch Iz fall below the breaker, then go back to 6 mm².',
+      onEnter: () => {
+        setDesign(SHOWER);
+        showGroups(['size']);
+        pulse(chipsOf('size'));
       },
-      {
-        kicker: 'Why In ≤ Iz',
-        title: 'The breaker protects the cable',
-        text: 'Here a 63 A breaker feeds 4 mm² cable that can only take about 36 A, and the load is pushed to 1.5 times normal. The breaker lets it all through, so the cable heats up instead.',
-        tryIt: 'Watch the cable temperature climb. Then fix it: pick a 40 A breaker and 6 mm² cable.',
-        onEnter: () => {
-          setDesign({ applianceId: 'sh85', breaker: 63, size: 4, method: 'C', group: 1 });
-          q('cb-over').click();
-          pulse(chipsOf('brk'));
-        },
+    },
+    {
+      kicker: 'Iz · where it runs',
+      title: 'Where a cable runs changes what it can carry',
+      text: 'Current heats a cable. Clipped to a wall, the heat escapes; buried in insulation or bunched with other cables, it cannot, so the same cable carries less.',
+      tryIt: 'Switch from “Clipped direct” to “In insulation” and watch Iz fall below the breaker.',
+      onEnter: () => {
+        setDesign(SHOWER);
+        showGroups(['method']);
+        pulse(chipsOf('method'));
       },
-      {
-        kicker: 'Volt drop',
-        title: 'Long runs lose voltage',
-        text: 'Every metre of cable eats a little voltage. Lighting is only allowed to lose about 3% (6.9 V), so a long run on thin cable can fail even when it is cool.',
-        tryIt: 'Drag the Cable length slider up until the volt drop check turns red.',
-        onEnter: () => {
-          setDesign({ applianceId: 'light', breaker: 6, size: 1.5, method: 'C', group: 1, length: 20 });
-          pulse(lenIn.closest('.slider-card'));
-        },
+    },
+    {
+      kicker: 'Why In ≤ Iz',
+      title: 'The breaker protects the cable',
+      text: 'Here a 63 A breaker feeds 4 mm² cable that can only take about 36 A, and the load is pushed to 1.5 times normal. The breaker lets it all through, so the cable heats up instead.',
+      tryIt: 'Watch the cable temperature climb. Then fix it: pick a 40 A breaker and 6 mm² cable.',
+      onEnter: () => {
+        setDesign({ ...SHOWER, breaker: 63, size: 4 });
+        q('cb-over').click();
+        showGroups(['brk', 'size', 'test']);
+        pulse(chipsOf('brk'));
       },
-      {
-        title: 'Now design your own',
-        text: 'Work through the three challenges in the panel, try the stress test and the calculators, then take the quiz to tick this chapter off.',
-        tryIt: 'Open the Quiz tab when you are ready.',
-        onEnter: () => pulse(q('cb-tab-quiz')),
+    },
+    {
+      kicker: 'Volt drop',
+      title: 'Long runs lose voltage',
+      text: 'Every metre of cable eats a little voltage. Lighting is only allowed to lose about 3% (6.9 V), so a long run on thin cable can fail even when it is cool.',
+      tryIt: 'Drag the Cable length slider up until the volt drop turns red.',
+      onEnter: () => {
+        setDesign({ applianceId: 'light', breaker: 6, size: 1.5, method: 'C', group: 1, length: 20 });
+        showGroups(['len']);
+        pulse(lenIn.closest('.slider-card'));
       },
-    ],
-    { position: 'top-right' },
-  );
+    },
+    // CH_AT is the index of the first challenge: now the learner does the work.
+    {
+      kicker: 'Challenge 1 of 3',
+      title: 'Fit the 8.5 kW shower',
+      text: 'It starts with a breaker and cable that do not suit it. Change them until all three checks go green.',
+      tryIt: 'Use the live checks under the picture.',
+      onEnter: () => {
+        firstTime(0, () => setDesign({ ...SHOWER, breaker: 32, size: 4, length: 20 }));
+        showGroups(['brk', 'size', 'checks']);
+      },
+    },
+    {
+      kicker: 'Challenge 2 of 3',
+      title: 'See why it matters',
+      text: 'Fit a breaker bigger than the cable can carry, then push the current up and watch the cable.',
+      tryIt: 'Try a 63 A breaker on 4 mm², then drag the current up.',
+      onEnter: () => {
+        firstTime(1, () => setDesign({ ...SHOWER, length: 20 }));
+        showGroups(['brk', 'size', 'test']);
+      },
+    },
+    {
+      kicker: 'Challenge 3 of 3',
+      title: 'Stretch a lighting run',
+      text: 'Make the cable longer until the volt drop check fails. Then see which cable size fixes it.',
+      tryIt: 'Drag the length up, then try a thicker cable.',
+      onEnter: () => {
+        firstTime(2, () => setDesign({ applianceId: 'light', breaker: 6, size: 1.5, method: 'C', group: 1, length: 20 }));
+        showGroups(['size', 'len', 'checks']);
+      },
+    },
+    {
+      title: 'Now design your own',
+      text: 'Try the calculators for the same sums with your own numbers, then take the quiz to tick this chapter off.',
+      tryIt: 'Open the Calculate or Quiz tab in the panel.',
+      onEnter: () => {
+        showGroups(['app', 'brk', 'size', 'method', 'len', 'checks']);
+        pulse(q('cb-tab-quiz'));
+      },
+    },
+  ];
+  const guide = mountGuide(stage, steps, { position: 'top-right' });
 
   /* ----------------------------- calculators ----------------------------- */
   const cc = {
