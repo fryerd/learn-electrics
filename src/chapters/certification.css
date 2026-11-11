@@ -1050,3 +1050,25 @@ input.ct-in {
     appearance: none;
   }
 }
+
+/* Stage-guide highlight for parts of the SVG board (box-shadow does not show on SVG). */
+.ct-svg .gd-pulse {
+  animation: none;
+}
+.ct-svg .gd-pulse :is(rect, circle):not(.ct-mark):not(.ct-hit):not(.ct-ring-sel) {
+  animation: ct-gd-flash 1.9s ease-out 1;
+}
+@keyframes ct-gd-flash {
+  0%,
+  60% {
+    stroke: var(--accent);
+    stroke-width: 6px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ct-svg .gd-pulse :is(rect, circle):not(.ct-mark):not(.ct-hit):not(.ct-ring-sel) {
+    animation: none;
+    stroke: var(--accent);
+    stroke-width: 5px;
+  }
+}

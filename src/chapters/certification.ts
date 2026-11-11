@@ -1,5 +1,6 @@
 import './certification.css';
 import { certification, quiz, reference, verdicts, zsTable } from '../data/certification-lesson';
+import { mountGuide, pulse } from '../ui/guide';
 import { mountQuiz } from '../ui/quiz';
 import { allTerms, createBoard } from './certification-board';
 import { mountCertificate } from './certification-cert';
@@ -115,7 +116,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
     ['test', 'Test'],
     ['faults', 'Faults'],
     ['cert', 'Cert'],
-    ['guide', 'Guide'],
+    ['guide', 'Notes'],
     ['quiz', 'Quiz'],
   ];
   const termOptions = (() => {
@@ -229,7 +230,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
     renderGoal();
   };
   mountQuiz($('ct-view-quiz'), quiz, {
-    retryHint: 'Have another look at the Guide tab, then try again.',
+    retryHint: 'Have another look at the Notes tab, then try again.',
     onFinish: (score, total) => {
       if (score / total >= 0.75) quizPassed = true;
       checkComplete();
@@ -569,6 +570,101 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
   renderRows();
   renderGoal();
   changed();
+
+  /* ------------------------------ the guided walkthrough ------------------------------ */
+  /** Put the rig into a clean state for a guide step: chosen test, supply on or off, probes lifted. */
+  const setUp = (mode: Mode, supplyOn: boolean, link: Link = 'none') => {
+    selectTab('test');
+    rig.supplyOn = supplyOn;
+    rig.rcdTripped = false;
+    rig.link = link;
+    rig.red = null;
+    rig.black = null;
+    rig.point = null;
+    nextProbe = 'red';
+    setMode(mode);
+  };
+  const onStage = (sel: string) => stage.querySelector(sel);
+  const dial = (m: Mode) => panel.querySelector(`[data-mode="${m}"]`);
+  mountGuide(
+    stage,
+    [
+      {
+        title: 'Prove it, then write it down',
+        text: 'New wiring is not finished until it has been tested and the results recorded. This workshop board has a consumer unit, a ring of six sockets, four lights and a multifunction tester.',
+        tryIt: 'Find the main switch on the consumer unit. It is off, so the circuits are isolated and safe to test.',
+        onEnter: () => {
+          setUp('off', false);
+          pulse(onStage('.ct-main'));
+        },
+      },
+      {
+        kicker: 'Dead test · Ω',
+        title: 'Continuity: is it joined up?',
+        text: 'With the power off, a low-resistance ohmmeter proves each conductor runs unbroken from end to end. Null the leads first so their own resistance is not counted.',
+        tryIt: 'Press "Null the leads", then click the two RING line (brown) ends, leg A and leg B, to read r1.',
+        onEnter: () => {
+          setUp('cont', false);
+          pulse(dial('cont'));
+          pulse(onStage('.ct-ends'));
+        },
+      },
+      {
+        kicker: 'Dead test · Ω',
+        title: 'Cross the ring, check every socket',
+        text: 'Join the line of each leg to the CPC of the other at the board. On a healthy ring every socket then reads about the same, and the highest reading is R1 + R2.',
+        tryIt: 'Click the line and earth terminals of Socket 1, then of Socket 4. The readings should be close.',
+        onEnter: () => {
+          setUp('cont', false, 'ring-LE');
+          rig.nulled = true;
+          changed();
+          pulse(panel.querySelector('.ct-links'));
+          pulse(onStage('[data-place="S0"]'));
+        },
+      },
+      {
+        kicker: 'Dead test · MΩ',
+        title: 'Insulation: nothing leaking',
+        text: 'The tester pushes 500 V DC between conductors that should be kept apart. You want a high reading: at least 1 MΩ, and healthy circuits often read off the scale.',
+        tryIt: 'Tick "Lamps out", then click the LIGHTS line and neutral ends at the board.',
+        onEnter: () => {
+          setUp('ir', false);
+          pulse(dial('ir'));
+          pulse(panel.querySelector('.ct-check'));
+        },
+      },
+      {
+        kicker: 'Live test · Zs',
+        title: 'Loop impedance: will the breaker trip?',
+        text: 'Now the power goes on. Zs is the resistance of the path a fault current would take. It must be low enough for the breaker to trip quickly; compare it with 80% of the table value.',
+        tryIt: 'Click a socket on the board to plug the tester in, and read Zs.',
+        onEnter: () => {
+          setUp('zs', true);
+          pulse(onStage('[data-place="S2"]'));
+        },
+      },
+      {
+        kicker: 'Live test · RCD',
+        title: 'RCD: fast enough to protect people',
+        text: 'The tester leaks a set current to earth and times the trip. A 30 mA RCD should not trip at half its rating, and should trip within 300 ms at 1× and 40 ms at 5×.',
+        tryIt: 'Press ×½, then ×1. After a trip, click the RCD on the board to reset it.',
+        onEnter: () => {
+          setUp('rcd', true);
+          pulse(panel.querySelector('.ct-rcd-btns'));
+        },
+      },
+      {
+        title: 'Record it, and hunt the faults',
+        text: 'Every reading goes on a schedule of test results, which becomes the certificate. This board has hidden faults: log readings, say what each shows, then reveal the answers.',
+        tryIt: 'Press "Log reading" for a few tests, then open the Faults tab. The Cert and Quiz tabs finish the chapter.',
+        onEnter: () => {
+          pulse($('ct-log'));
+          pulse($('ct-tab-faults'));
+        },
+      },
+    ],
+    { position: 'bottom-right' },
+  );
 
   return {
     activate() {
