@@ -49,6 +49,20 @@
   justify-content: space-between;
   margin-bottom: 2px;
 }
+.gd-head {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.gd-dragging .gd-head {
+  cursor: grabbing;
+}
+.gd-dragging .gd-card {
+  box-shadow: 0 16px 34px rgba(29, 35, 43, 0.28);
+}
+.gd-docked .gd-head {
+  cursor: default;
+}
 .gd-count {
   font-size: 12px;
   letter-spacing: 0.14em;

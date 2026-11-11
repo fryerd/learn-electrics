@@ -123,6 +123,7 @@ export function mountGuide(stage: HTMLElement, steps: GuideStep[], opts: GuideOp
     root.hidden = stage.hidden || !wanted;
   };
   const place = () => {
+    root.style.left = root.style.top = root.style.right = root.style.bottom = ''; // back to its corner
     if (phone.matches) {
       document.getElementById('stage')!.after(root);
       root.classList.add('gd-docked');
@@ -133,6 +134,35 @@ export function mountGuide(stage: HTMLElement, steps: GuideStep[], opts: GuideOp
     sync();
   };
   phone.addEventListener('change', place);
+
+  // Wide screens: drag the card by its header to wherever suits you on the stage.
+  const head = $('.gd-head');
+  head.addEventListener('pointerdown', (e) => {
+    if (phone.matches || (e.target as HTMLElement).closest('button')) return;
+    const parent = root.offsetParent as HTMLElement | null;
+    if (!parent) return;
+    e.preventDefault();
+    head.setPointerCapture(e.pointerId);
+    const dx = e.clientX - root.offsetLeft;
+    const dy = e.clientY - root.offsetTop;
+    root.classList.add('gd-dragging');
+    const move = (m: PointerEvent) => {
+      const x = Math.max(0, Math.min(parent.clientWidth - root.offsetWidth, m.clientX - dx));
+      const y = Math.max(0, Math.min(parent.clientHeight - root.offsetHeight, m.clientY - dy));
+      root.style.right = root.style.bottom = 'auto';
+      root.style.left = `${x}px`;
+      root.style.top = `${y}px`;
+    };
+    const up = () => {
+      root.classList.remove('gd-dragging');
+      head.removeEventListener('pointermove', move);
+      head.removeEventListener('pointerup', up);
+      head.removeEventListener('pointercancel', up);
+    };
+    head.addEventListener('pointermove', move);
+    head.addEventListener('pointerup', up);
+    head.addEventListener('pointercancel', up);
+  });
   new MutationObserver(sync).observe(stage, { attributes: true, attributeFilter: ['hidden'] });
   place();
 
