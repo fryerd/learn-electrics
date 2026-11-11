@@ -6,8 +6,6 @@ import { SocketScene } from '../scene/socket';
  */
 export function mountHome() {
   const host = document.getElementById('home-canvas')!;
-  const toggle = document.getElementById('home-toggle') as HTMLButtonElement;
-  const hint = document.getElementById('home-hint')!;
   const scene = new SocketScene(host);
   scene.pause();
   scene.setMode('wire');
@@ -17,24 +15,16 @@ export function mountHome() {
   let timer = 0;
   let touched = false;
 
-  const refresh = () => {
-    const { fit } = scene.getWiring();
-    const open = fit === 'off' || fit === 'removing';
-    toggle.textContent = open ? 'Close it up' : 'Open it up';
-    toggle.disabled = fit === 'fitting' || fit === 'removing';
-    hint.style.visibility = open ? 'visible' : 'hidden';
-  };
-  scene.onWiringChange = refresh;
-
-  toggle.addEventListener('click', () => {
+  // Click the faceplate to open it; click the back box to close it up again.
+  scene.onPartClick = (part) => {
     touched = true;
     const { fit } = scene.getWiring();
-    if (fit === 'off') {
+    if (fit === 'fitted' && (part === 'faceplate' || part === 'screws')) scene.setFitted(false);
+    else if (fit === 'off' && (part === 'backbox' || part === 'knockout')) {
       scene.wireCorrectly(); // any loose or swapped cores go home first
       scene.setFitted(true);
-    } else if (fit === 'fitted') scene.setFitted(false);
-  });
-  refresh();
+    }
+  };
 
   return {
     activate() {

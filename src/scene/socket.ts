@@ -133,6 +133,8 @@ export class SocketScene {
   onFrame: (anchors: ProjectedAnchor[]) => void = () => {};
   /** Fired whenever the wire-it state changes (mode, selection or connections). */
   onWiringChange: () => void = () => {};
+  /** Wire mode: a click that landed on a part of the socket (not a core or terminal). */
+  onPartClick: (id: PartId) => void = () => {};
 
   private mode: SceneMode = 'explore';
   private conductors = new Map<WireId, Conductor>();
@@ -468,6 +470,10 @@ export class SocketScene {
     if (terminal) this.assignToTerminal(terminal.object.userData.wire as WireId);
     else if (conductor) this.selectConductor(conductor.object.userData.wire as WireId);
     else if (this.activeConductor) this.selectConductor(this.activeConductor); // click away = put down
+    else {
+      const part = hits.find((h) => h.object.userData.part)?.object.userData.part as PartId | undefined;
+      if (part) this.onPartClick(part);
+    }
   }
 
   /* ------------------------------- building ------------------------------- */
