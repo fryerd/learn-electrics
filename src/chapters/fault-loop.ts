@@ -1,6 +1,6 @@
 import './fault-loop.css';
 import { challenges, lesson, quiz, startSetup, supplies } from '../data/fault-loop-lesson';
-import { mountGuide, pulse } from '../ui/guide';
+import { mountGuide, pulse, type GuideStep } from '../ui/guide';
 import { mountQuiz } from '../ui/quiz';
 import {
   analyse,
@@ -71,8 +71,11 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
   let r: Result = analyse(s);
 
   /* =============================== the stage =============================== */
+  const chip = (attrs: string, label: string, small = '') =>
+    `<button type="button" class="fl-opt" ${attrs} aria-pressed="false"><b>${label}</b>${small ? `<small>${small}</small>` : ''}</button>`;
   stage.innerHTML = `
     <div class="fl-stage">
+      <div class="fl-main" id="fl-main">
       <div class="fl-loop-scene" id="fl-loop-scene">
         <div class="fl-svg-host" id="fl-svg-host"></div>
         <div class="fl-overlay">
@@ -85,6 +88,68 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
           ${meterSvg()}
           <button type="button" class="fl-test-btn" id="fl-test-stage" aria-label="Press test on the meter">TEST</button>
         </div>
+      </div>
+      </div>
+      <div class="fl-tray" id="fl-tray">
+      <div class="fl-group fl-tg" data-g="supply">
+        <div class="wire-label">Supply · Ze</div>
+        <div class="fl-row3" role="group" aria-label="Supply type">
+          ${supplies.map((p) => chip(`data-supply="${p.id}"`, p.label, p.note)).join('')}
+        </div>
+        <div class="slider-card">
+          <label for="fl-ze">Ze, outside your home <b id="fl-ze-out"></b></label>
+          <input type="range" id="fl-ze" min="0" max="1000" step="1" />
+        </div>
+      </div>
+
+      <div class="fl-group fl-tg" data-g="cable">
+        <div class="wire-label">Cable · line / CPC in mm²</div>
+        <div class="fl-cables" role="group" aria-label="Cable size">
+          ${CABLES.map((c) => chip(`data-cable="${c.id}"`, c.id, `${r1r2PerMetre(c).toFixed(2)} mΩ/m`)).join('')}
+        </div>
+        <div class="fl-row2" role="group" aria-label="Circuit shape">
+          ${chip('data-ring="0"', 'Radial', 'one run out')}${chip('data-ring="1"', 'Ring', 'out and back')}
+        </div>
+        <div class="slider-card">
+          <label for="fl-len"><span id="fl-len-name">Run length</span> <b id="fl-len-out"></b></label>
+          <input type="range" id="fl-len" min="1" max="200" step="1" />
+        </div>
+        <p class="fl-sum" id="fl-r1r2"></p>
+      </div>
+
+      <div class="fl-group fl-tg" data-g="brk">
+        <div class="wire-label">Breaker</div>
+        <div class="fl-row2" role="group" aria-label="Breaker type">
+          ${chip('data-type="B"', 'Type B', 'trips at about 5 × In')}${chip('data-type="C"', 'Type C', 'trips at about 10 × In')}
+        </div>
+        <div class="fl-ratings" role="group" aria-label="Breaker rating">
+          ${RATINGS.map((a) => chip(`data-rating="${a}"`, `${a} A`)).join('')}
+        </div>
+      </div>
+
+      <div class="fl-group fl-tg" data-g="result">
+      <div class="readouts fl-readouts">
+        <div class="readout"><small>Zs = Ze + R1 + R2</small><b id="fl-o-zs"></b></div>
+        <div class="readout"><small>If = 230 ÷ Zs</small><b id="fl-o-if"></b></div>
+        <div class="readout"><small>If as a multiple</small><b id="fl-o-mult"></b></div>
+        <div class="readout"><small>Limit · 80% of max</small><b id="fl-o-lim"></b></div>
+      </div>
+      <ul class="wire-results fl-verdict" id="fl-verdict" aria-live="polite"></ul>
+
+      </div>
+      <div class="fl-group fl-tg" data-g="answer"><button type="button" class="primary" id="fl-answer">None of them can</button></div>
+      <div class="fl-group fl-tg" data-g="meter">
+      <div class="fl-setup">
+        <small>Testing the furthest socket of</small>
+        <b id="fl-m-setup"></b>
+        <button type="button" class="ghost fl-change" id="fl-m-change">Change the circuit</button>
+      </div>
+      <div class="readouts">
+        <div class="readout"><small>Reading · Zs</small><b id="fl-m-zs">–</b></div>
+        <div class="readout"><small>Prospective fault current</small><b id="fl-m-pfc">–</b></div>
+      </div>
+      <div class="fl-judge" id="fl-judge" aria-live="polite"><p class="wire-hint">Press test to take a reading.</p></div>
+      </div>
       </div>
     </div>`;
   const st = <T extends Element>(id: string) => stage.querySelector<T>(`#${id}`)!;
@@ -115,8 +180,6 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
   };
 
   /* =============================== the panel =============================== */
-  const chip = (attrs: string, label: string, small = '') =>
-    `<button type="button" class="fl-opt" ${attrs} aria-pressed="false"><b>${label}</b>${small ? `<small>${small}</small>` : ''}</button>`;
 
   panel.innerHTML = `
     <div class="tabs fl-tabs" role="tablist">
@@ -128,51 +191,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
     <section role="tabpanel" id="fl-view-loop" aria-labelledby="fl-tab-loop">
       <div class="detail"><h2><span class="badge">6</span>${lesson.title}</h2><p>${lesson.intro}</p></div>
 
-      <div class="challenge fl-chal" id="fl-chal"></div>
-
-      <div class="fl-group">
-        <div class="wire-label">Supply · Ze</div>
-        <div class="fl-row3" role="group" aria-label="Supply type">
-          ${supplies.map((p) => chip(`data-supply="${p.id}"`, p.label, p.note)).join('')}
-        </div>
-        <div class="slider-card">
-          <label for="fl-ze">Ze, outside your home <b id="fl-ze-out"></b></label>
-          <input type="range" id="fl-ze" min="0" max="1000" step="1" />
-        </div>
-      </div>
-
-      <div class="fl-group">
-        <div class="wire-label">Cable · line / CPC in mm²</div>
-        <div class="fl-cables" role="group" aria-label="Cable size">
-          ${CABLES.map((c) => chip(`data-cable="${c.id}"`, c.id, `${r1r2PerMetre(c).toFixed(2)} mΩ/m`)).join('')}
-        </div>
-        <div class="fl-row2" role="group" aria-label="Circuit shape">
-          ${chip('data-ring="0"', 'Radial', 'one run out')}${chip('data-ring="1"', 'Ring', 'out and back')}
-        </div>
-        <div class="slider-card">
-          <label for="fl-len"><span id="fl-len-name">Run length</span> <b id="fl-len-out"></b></label>
-          <input type="range" id="fl-len" min="1" max="200" step="1" />
-        </div>
-        <p class="fl-sum" id="fl-r1r2"></p>
-      </div>
-
-      <div class="fl-group">
-        <div class="wire-label">Breaker</div>
-        <div class="fl-row2" role="group" aria-label="Breaker type">
-          ${chip('data-type="B"', 'Type B', 'trips at about 5 × In')}${chip('data-type="C"', 'Type C', 'trips at about 10 × In')}
-        </div>
-        <div class="fl-ratings" role="group" aria-label="Breaker rating">
-          ${RATINGS.map((a) => chip(`data-rating="${a}"`, `${a} A`)).join('')}
-        </div>
-      </div>
-
-      <div class="readouts fl-readouts">
-        <div class="readout"><small>Zs = Ze + R1 + R2</small><b id="fl-o-zs"></b></div>
-        <div class="readout"><small>If = 230 ÷ Zs</small><b id="fl-o-if"></b></div>
-        <div class="readout"><small>If as a multiple</small><b id="fl-o-mult"></b></div>
-        <div class="readout"><small>Limit · 80% of max</small><b id="fl-o-lim"></b></div>
-      </div>
-      <ul class="wire-results fl-verdict" id="fl-verdict" aria-live="polite"></ul>
+      <p class="fl-sum">Every control now sits under the picture, and the guide walks you through them one at a time.</p>
 
       <details class="fl-more">
         <summary>Why 0.4 seconds, 50 V and 30 mA?</summary>
@@ -185,17 +204,6 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
 
     <section role="tabpanel" id="fl-view-meter" aria-labelledby="fl-tab-meter" hidden>
       <div class="detail"><h2><span class="badge">6</span>${lesson.meterTitle}</h2><p>${lesson.meterIntro}</p></div>
-      <div class="fl-setup">
-        <small>Testing the furthest socket of</small>
-        <b id="fl-m-setup"></b>
-        <button type="button" class="ghost fl-change" id="fl-m-change">Change the circuit</button>
-      </div>
-      <button type="button" class="primary fl-test" id="fl-test-panel">Press test</button>
-      <div class="readouts">
-        <div class="readout"><small>Reading · Zs</small><b id="fl-m-zs">–</b></div>
-        <div class="readout"><small>Prospective fault current</small><b id="fl-m-pfc">–</b></div>
-      </div>
-      <div class="fl-judge" id="fl-judge" aria-live="polite"><p class="wire-hint">Press test to take a reading.</p></div>
       <div class="wire-label fl-gap">How to judge a reading</div>
       <ol class="fl-steps">
         <li>Find the maximum Zs for the breaker’s type and rating.</li>
@@ -211,7 +219,8 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
 
     <section role="tabpanel" id="fl-view-quiz" aria-labelledby="fl-tab-quiz" hidden></section>`;
 
-  const q = <T extends HTMLElement>(id: string) => panel.querySelector<T>(`#${id}`)!;
+  const q = <T extends HTMLElement>(id: string) => (panel.querySelector<T>(`#${id}`) ?? stage.querySelector<T>(`#${id}`))!;
+  const all = (sel: string) => [...panel.querySelectorAll<HTMLElement>(sel), ...stage.querySelectorAll<HTMLElement>(sel)];
   const zeIn = q<HTMLInputElement>('fl-ze');
   const lenIn = q<HTMLInputElement>('fl-len');
 
@@ -229,6 +238,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
     }
     st<HTMLElement>('fl-meter-scene').hidden = k !== 'meter';
     st<HTMLElement>('fl-loop-scene').hidden = k === 'meter';
+    if (typeof showGroups === 'function') showGroups(k === 'meter' ? ['meter'] : k === 'loop' ? loopIds : []);
   };
   (Object.keys(tabs) as Tab[]).forEach((k) => tabs[k].btn.addEventListener('click', () => showTab(k)));
   q('fl-m-change').addEventListener('click', () => showTab('loop'));
@@ -241,74 +251,56 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
   });
 
   /* ------------------------------ challenges ------------------------------ */
+  // Each challenge is a step of the stage guide (see the end of this file). Its "Try it" box
+  // doubles as live feedback while the learner works.
   let ci = 0;
   let loaded = -1;
   const solved = new Set<string>();
-  const chalEl = q('fl-chal');
+  let guide: ReturnType<typeof mountGuide> | undefined;
+  let chStart = 0; // index of the first challenge step
+  const plain = (h: string) => h.replace(/<\/?b>/g, '');
+  let lastFb = '';
+  let refreshing = false; // true while the feedback itself redraws the guide card
 
-  const renderChallenge = () => {
-    const c = challenges[ci];
-    chalEl.innerHTML = `
-      <div class="fl-chal-head">
-        <span>Challenge ${ci + 1} of ${challenges.length}</span>
-        <span class="fl-dots" aria-hidden="true">${challenges
-          .map((x, i) => `<i class="${solved.has(x.id) ? 'done' : ''} ${i === ci ? 'on' : ''}"></i>`)
-          .join('')}</span>
-      </div>
-      <b class="fl-chal-title">${c.title}</b>
-      <p>${c.ask}</p>
-      <div class="fl-chal-actions">
-        <button type="button" class="primary" data-ch="setup">Set it up</button>
-        ${c.answer ? `<button type="button" class="ghost" data-ch="answer">${c.answer.label}</button>` : ''}
-      </div>
-      <p class="fl-chal-fb" id="fl-chal-fb" aria-live="polite"></p>
-      <div class="fl-chal-nav">
-        <button type="button" class="ghost" data-ch="prev" ${ci === 0 ? 'disabled' : ''}>‹ Back</button>
-        <button type="button" class="ghost" data-ch="next" ${ci === challenges.length - 1 ? 'disabled' : ''}>Next ›</button>
-      </div>`;
-    chalEl.querySelector('[data-ch="setup"]')!.addEventListener('click', () => {
-      loaded = ci;
-      Object.assign(s, c.setup);
-      supplyKind = c.setup.ze >= 5 ? 'tt' : Math.abs(c.setup.ze - 0.8) < 0.01 ? 'tns' : 'tncs';
-      update();
-    });
-    chalEl.querySelector('[data-ch="answer"]')?.addEventListener('click', () => {
-      solved.add(c.id);
-      renderChallenge();
-      update();
-    });
-    chalEl.querySelector('[data-ch="prev"]')!.addEventListener('click', () => go(ci - 1));
-    chalEl.querySelector('[data-ch="next"]')!.addEventListener('click', () => go(ci + 1));
-    updateChallenge();
-  };
-  const go = (i: number) => {
-    ci = Math.max(0, Math.min(challenges.length - 1, i));
-    renderChallenge();
-  };
   const updateChallenge = () => {
+    if (!guide) return;
     const c = challenges[ci];
-    const fb = chalEl.querySelector<HTMLElement>('#fl-chal-fb');
-    if (!fb) return;
+    const at = chStart + ci;
+    if (guide.current() !== at) return;
+    let kicker = `Challenge ${ci + 1} of ${challenges.length}`;
     let text = '';
     if (solved.has(c.id)) {
-      text = `<b>Solved.</b> ${c.answer ? c.answer.reveal : c.reveal}`;
+      kicker += ' · solved ✓';
+      text = `Solved. ${plain(c.answer ? c.answer.reveal : c.reveal)}`;
     } else if (loaded === ci) {
       const res = c.check(s, r);
       if (res.done) {
         solved.add(c.id);
-        renderChallenge();
+        updateChallenge();
         return;
       }
       text = res.msg;
     } else {
-      text = 'Press “Set it up” to load this circuit into the loop.';
+      text = 'Setting up the circuit…';
     }
-    chalEl.classList.toggle('ok', solved.has(c.id));
-    if (fb.innerHTML !== text) fb.innerHTML = text;
+    if (text === lastFb) return;
+    lastFb = text;
+    chSteps[ci].kicker = kicker;
+    chSteps[ci].tryIt = text;
+    refreshing = true;
+    guide.go(at);
+    refreshing = false;
   };
+  const chSteps: GuideStep[] = [];
+  const answerBtn = q<HTMLButtonElement>('fl-answer');
+  answerBtn.addEventListener('click', () => {
+    solved.add(challenges[ci].id);
+    updateChallenge();
+    update();
+  });
 
   /* ------------------------------ controls ------------------------------ */
-  panel.querySelectorAll<HTMLElement>('[data-supply]').forEach((b) =>
+  all('[data-supply]').forEach((b) =>
     b.addEventListener('click', () => {
       const p = supplies.find((x) => x.id === b.dataset.supply)!;
       supplyKind = p.id;
@@ -322,13 +314,13 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
     else if (supplyKind === 'tt') supplyKind = 'tncs';
     update();
   });
-  panel.querySelectorAll<HTMLElement>('[data-cable]').forEach((b) =>
+  all('[data-cable]').forEach((b) =>
     b.addEventListener('click', () => {
       s.cable = b.dataset.cable!;
       update();
     }),
   );
-  panel.querySelectorAll<HTMLElement>('[data-ring]').forEach((b) =>
+  all('[data-ring]').forEach((b) =>
     b.addEventListener('click', () => {
       s.ring = b.dataset.ring === '1';
       update();
@@ -338,20 +330,20 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
     s.length = Number(lenIn.value);
     update();
   });
-  panel.querySelectorAll<HTMLElement>('[data-type]').forEach((b) =>
+  all('[data-type]').forEach((b) =>
     b.addEventListener('click', () => {
       s.type = b.dataset.type as 'B' | 'C';
       update();
     }),
   );
-  panel.querySelectorAll<HTMLElement>('[data-rating]').forEach((b) =>
+  all('[data-rating]').forEach((b) =>
     b.addEventListener('click', () => {
       s.rating = Number(b.dataset.rating);
       update();
     }),
   );
   const press = (sel: string, on: (b: HTMLElement) => boolean) =>
-    panel.querySelectorAll<HTMLElement>(sel).forEach((b) => b.setAttribute('aria-pressed', String(on(b))));
+    all(sel).forEach((b) => b.setAttribute('aria-pressed', String(on(b))));
 
   /* ------------------------------ the meter ------------------------------ */
   let reading: { zs: number; limit: number; label: string } | null = null;
@@ -361,7 +353,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
     sub: st<SVGTextElement>('fl-lcd-sub'),
     mode: st<SVGTextElement>('fl-lcd-mode'),
   };
-  const testBtns = [st<HTMLButtonElement>('fl-test-stage'), q<HTMLButtonElement>('fl-test-panel')];
+  const testBtns = [st<HTMLButtonElement>('fl-test-stage')];
   const judgeEl = q('fl-judge');
 
   const runTest = () => {
@@ -590,13 +582,13 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
 
   /* ------------------------------ layout + animation ------------------------------ */
   const pickLayout = () => {
-    const { width, height } = stage.getBoundingClientRect();
+    const { width, height } = st<HTMLElement>('fl-main').getBoundingClientRect();
     if (!width || !height) return;
     const want = width >= 600 && width / height >= 1.12 ? WIDE : TALL;
     if (want !== geo || !loopPath) buildLoop(want);
   };
   const ro = new ResizeObserver(pickLayout);
-  ro.observe(stage);
+  ro.observe(st<HTMLElement>('fl-main'));
 
   let raf = 0;
   let last = 0;
@@ -632,7 +624,6 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
 
   pickLayout();
   if (!loopPath) buildLoop(WIDE);
-  renderChallenge();
   update();
   setPhase('flow');
 
@@ -646,82 +637,148 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
     update();
   };
   const cardOf = (e: Element) => e.closest('.slider-card') ?? e;
-  const wide = matchMedia('(min-width: 881px)');
-  /** Ring a control; on wide screens also scroll the side panel so it is in view. */
-  const point = (e: Element | null | undefined) => {
-    if (!e) return;
-    if (wide.matches) e.scrollIntoView({ block: 'nearest', behavior: reduced ? 'auto' : 'smooth' });
-    pulse(e);
+  const tray = st<HTMLElement>('fl-tray');
+  /** Show only the controls this step is about. */
+  function showGroups(ids: string[]) {
+    tray.querySelectorAll<HTMLElement>('.fl-tg').forEach((g) => (g.hidden = !ids.includes(g.dataset.g!)));
+    tray.hidden = ids.length === 0;
+  }
+  const point = (e: Element | null | undefined) => pulse(e);
+
+  const loopIds = ['supply', 'cable', 'brk', 'result'];
+  const seen = new Set<number>();
+  const challengeStep = (i: number): GuideStep => {
+    const c = challenges[i];
+    const groups = [['cable', 'result'], ['cable', 'result'], ['brk', 'result'], ['supply', 'brk', 'result', 'answer']][i] ?? loopIds;
+    const step: GuideStep = {
+      kicker: `Challenge ${i + 1} of ${challenges.length}`,
+      title: c.title,
+      text: plain(c.ask),
+      tryIt: 'Setting up the circuit…',
+      onEnter: () => {
+        if (refreshing) return;
+        showTab('loop');
+        showGroups(groups);
+        ci = i;
+        lastFb = '';
+        answerBtn.hidden = !c.answer;
+        if (c.answer) answerBtn.textContent = c.answer.label;
+        if (!seen.has(i)) {
+          seen.add(i);
+          loaded = i;
+          Object.assign(s, c.setup);
+          supplyKind = c.setup.ze >= 5 ? 'tt' : Math.abs(c.setup.ze - 0.8) < 0.01 ? 'tns' : 'tncs';
+          update();
+        }
+        queueMicrotask(updateChallenge);
+      },
+    };
+    chSteps[i] = step;
+    return step;
   };
 
-  mountGuide(
-    stage,
-    [
-      {
-        title: 'When metal goes live',
-        text: 'If the line wire touches a metal case, current rushes through the case, back along the earth wire (CPC) and home to the transformer. That round trip is the earth fault loop.',
-        tryIt: 'Follow the glowing dots from the transformer, through the spark and back along the bottom.',
-        onEnter: () => load(),
+  const steps: GuideStep[] = [
+    {
+      title: 'When metal goes live',
+      text: 'If the line wire touches a metal case, current rushes through the case, back along the earth wire (CPC) and home to the transformer. That round trip is the earth fault loop.',
+      tryIt: 'Follow the glowing dots from the transformer, through the spark and back along the bottom.',
+      onEnter: () => {
+        load();
+        showGroups([]);
       },
-      {
-        kicker: 'Ohms (Ω)',
-        title: 'Zs adds up the whole loop',
-        text: 'Zs = Ze + R1 + R2. Ze is the supply outside your home, R1 is your line wire and R2 your earth wire. The bar along the bottom stacks all three.',
-        tryIt: 'Drag the Run length slider and watch R1, R2 and the bar grow.',
-        onEnter: () => {
-          load();
-          point(cardOf(lenIn));
-        },
+    },
+    {
+      kicker: 'Ohms (Ω)',
+      title: 'Zs adds up the whole loop',
+      text: 'Zs = Ze + R1 + R2. Ze is the supply outside your home, R1 is your line wire and R2 your earth wire. The bar along the bottom stacks all three.',
+      tryIt: 'Drag the Run length slider and watch R1, R2 and the bar grow.',
+      onEnter: () => {
+        load();
+        showGroups(['cable']);
+        point(cardOf(lenIn));
       },
-      {
-        kicker: 'Amps (A)',
-        title: 'Low Zs, fast trip',
-        text: 'Fault current = 230 V ÷ Zs. A type B breaker trips instantly at about 5 times its rating, so a healthy loop trips it in a flash.',
-        tryIt: 'Press “Play the fault” and watch the breaker trip in slow motion.',
-        onEnter: () => {
-          load();
-          pulse(playBtn);
-        },
+    },
+    {
+      kicker: 'Amps (A)',
+      title: 'Low Zs, fast trip',
+      text: 'Fault current = 230 V ÷ Zs. A type B breaker trips instantly at about 5 times its rating, so a healthy loop trips it in a flash.',
+      tryIt: 'Press “Play the fault” and watch the breaker trip in slow motion.',
+      onEnter: () => {
+        load();
+        showGroups(['result']);
+        pulse(playBtn);
       },
-      {
-        kicker: '0.4 seconds',
-        title: 'Too much cable fails',
-        text: 'This radial is 55 m long. Zs is now too high, the current too small, and the metal case could stay live for longer than the 0.4 s allowed.',
-        tryIt: 'Play the fault, then pick thicker cables until the verdict says PASS.',
-        onEnter: () => {
-          load({ length: 55 });
-          point(panel.querySelector('.fl-cables'));
-        },
+    },
+    {
+      kicker: '0.4 seconds',
+      title: 'Too much cable fails',
+      text: 'This radial is 55 m long. Zs is now too high, the current too small, and the metal case could stay live for longer than the 0.4 s allowed.',
+      tryIt: 'Play the fault, then pick thicker cables until the verdict says PASS.',
+      onEnter: () => {
+        load({ length: 55 });
+        showGroups(['cable', 'result']);
+        point(tray.querySelector('.fl-cables'));
       },
-      {
-        kicker: 'Type B or C',
-        title: 'The breaker sets the limit',
-        text: 'A type C needs about 10 times its rating to trip instantly, twice a type B, so its maximum Zs is about half. This garage circuit fails on a C32.',
-        tryIt: 'Switch to Type B, then try lower ratings and watch the 80% limit on the bar move.',
-        onEnter: () => {
-          load({ ze: 0.8, length: 20, type: 'C' });
-          point(panel.querySelector('[data-type]')?.parentElement);
-        },
+    },
+    {
+      kicker: 'Type B or C',
+      title: 'The breaker sets the limit',
+      text: 'A type C needs about 10 times its rating to trip instantly, twice a type B, so its maximum Zs is about half. This garage circuit fails on a C32.',
+      tryIt: 'Switch to Type B, then try lower ratings and watch the 80% limit on the bar move.',
+      onEnter: () => {
+        load({ ze: 0.8, length: 20, type: 'C' });
+        showGroups(['brk', 'result']);
+        point(tray.querySelector('[data-type]')?.parentElement);
       },
-      {
-        kicker: 'TT supply',
-        title: 'An earth rod is not enough',
-        text: 'On a TT supply the fault current returns through the ground via your own earth rod, so Ze is far higher. Only a few amps flow, so an RCD has to do the job instead of the breaker.',
-        tryIt: 'Try any breaker: none pass. Then press TN-C-S to compare.',
-        onEnter: () => {
-          load({ ze: 21, length: 20, rating: 6 });
-          point(panel.querySelector('[data-supply]')?.parentElement);
-        },
+    },
+    {
+      kicker: 'TT supply',
+      title: 'An earth rod is not enough',
+      text: 'On a TT supply the fault current returns through the ground via your own earth rod, so Ze is far higher. Only a few amps flow, so an RCD has to do the job instead of the breaker.',
+      tryIt: 'Try any breaker: none pass. Then press TN-C-S to compare.',
+      onEnter: () => {
+        load({ ze: 21, length: 20, rating: 6 });
+        showGroups(['supply', 'brk', 'result']);
+        point(tray.querySelector('[data-supply]')?.parentElement);
       },
-      {
-        title: 'Now test it yourself',
-        text: 'Electricians measure Zs with a loop tester and compare it with 80% of the maximum, because the cable warms up in use. Try the challenges, the meter, then the quiz.',
-        tryIt: 'Open the Meter tab and press TEST.',
-        onEnter: () => pulse(tabs.meter.btn),
+    },
+    ...challenges.map((_, i) => challengeStep(i)),
+    {
+      kicker: 'The loop tester',
+      title: 'Measure Zs for real',
+      text: 'Electricians measure Zs at the furthest socket with a loop tester. It sends a small current round the loop and works out Zs and the prospective fault current (230 V ÷ Zs).',
+      tryIt: 'Press TEST on the meter.',
+      onEnter: () => {
+        load({ length: 30, type: 'B', rating: 32 });
+        showTab('meter');
+        showGroups(['meter']);
+        pulse(st('fl-test-stage'));
       },
-    ],
-    { position: 'top-left' },
-  );
+    },
+    {
+      kicker: 'Judging the reading',
+      title: 'Is it low enough?',
+      text: 'Find the maximum Zs for the breaker’s type and rating, take 80% of it because the cable will be warmer in use, then check the reading is at or below that. This test is done live, so only competent people with proper GS38 leads should do it.',
+      tryIt: 'Press TEST, then say whether the reading is within the limit.',
+      onEnter: () => {
+        showTab('meter');
+        showGroups(['meter']);
+        pulse(st('fl-test-stage'));
+      },
+    },
+    {
+      title: 'Now the quiz',
+      text: 'You have followed the loop, changed it and measured it. Take the quiz to tick this chapter off.',
+      tryIt: 'Open the Quiz tab.',
+      onEnter: () => {
+        showTab('quiz');
+        showGroups([]);
+        pulse(tabs.quiz.btn);
+      },
+    },
+  ];
+  chStart = 6;
+  guide = mountGuide(stage, steps, { position: 'top-left' });
 
   return {
     activate() {
