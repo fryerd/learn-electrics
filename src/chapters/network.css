@@ -1333,3 +1333,72 @@
     opacity: 0.6;
   }
 }
+
+/* house: a little more detail on the cut-out, meter and consumer unit */
+.nw-cutcap {
+  fill: #3d454e;
+  stroke: #0e1216;
+  stroke-width: 0.6px;
+}
+.nw-grip {
+  fill: none;
+  stroke: #8b939c;
+  stroke-width: 0.7px;
+  stroke-linecap: round;
+}
+.nw-wire {
+  fill: none;
+  stroke: #d0453a;
+  stroke-width: 0.6px;
+}
+.nw-term {
+  fill: #b9892f;
+  stroke: #0e1216;
+  stroke-width: 0.4px;
+}
+.nw-digits {
+  font: 700 5.4px var(--font);
+  fill: #1d3a26;
+  letter-spacing: 0.2px;
+}
+.nw-unit {
+  font: 700 2.6px var(--font);
+  fill: #3f6b4a;
+}
+.nw-port {
+  fill: #2b3138;
+  stroke: #8b939c;
+  stroke-width: 0.8px;
+}
+.nw-tcover {
+  fill: #cfcabb;
+  stroke: var(--ink);
+  stroke-width: 0.6px;
+}
+.nw-cu-hd {
+  fill: #e4e1d7;
+  stroke: var(--ink);
+  stroke-width: 0.5px;
+}
+.nw-tog {
+  fill: #20262d;
+}
+.nw-rcd {
+  fill: #cfd8e3;
+  stroke: var(--ink);
+  stroke-width: 0.8px;
+}
+.nw-test {
+  fill: #f2c40f;
+  stroke: var(--ink);
+  stroke-width: 0.5px;
+}
+.nw-band {
+  stroke: var(--ink);
+  stroke-width: 0.4px;
+}
+.nw-label {
+  fill: #fbfaf5;
+  stroke: #9aa2ab;
+  stroke-width: 0.5px;
+}

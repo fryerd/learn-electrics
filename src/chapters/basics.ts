@@ -14,6 +14,25 @@ const fmtW = (w: number) => (w >= 1000 ? `${(w / 1000).toFixed(1)} kW` : `${Math
 const PIPE_X0 = 195;
 const PIPE_LEN = 300;
 const PIPE_Y = 279;
+
+type Appliance = 'lamp' | 'hairdryer' | 'kettle';
+
+/** Little line drawings of the three appliances, centred on (0,0), about 60 units across. */
+function applianceArt(kind: Appliance): string {
+  if (kind === 'lamp')
+    return `<circle class="bs-lamp" r="26"/><path class="bs-fil" d="M-11 6 l5 -10 l6 10 l6 -10 l5 10"/>`;
+  if (kind === 'hairdryer')
+    return `<g class="bs-heat"><path d="M-48 -8 q-6 -5 0 -9 M-52 4 q-7 -5 0 -9 M-48 16 q-6 -5 0 -9"/></g>
+      <path class="bs-body bs-dryer" d="M-36 -12 L-8 -22 Q22 -26 30 -4 Q30 14 8 16 L-8 16 L-36 8 Z"/>
+      <path class="bs-body bs-dryer" d="M-4 14 L14 14 L20 44 Q8 48 2 44 Z"/>
+      <circle class="bs-fil" cx="14" cy="-4" r="6"/>`;
+  return `<g class="bs-steam"><path d="M-8 -34 q-6 -6 0 -12 q6 -6 0 -12 M8 -34 q-6 -6 0 -12 q6 -6 0 -12"/></g>
+      <path class="bs-body bs-kettle" d="M-22 26 L-20 -14 Q0 -24 20 -14 L22 26 Z"/>
+      <path class="bs-body bs-kettle" d="M20 -10 L36 -22 L38 -16 L22 -2 Z"/>
+      <path class="bs-fil" d="M-22 -4 Q-40 -4 -38 10 Q-36 22 -22 18"/>
+      <rect class="bs-body bs-base" x="-28" y="26" width="56" height="8" rx="3"/>
+      <circle class="bs-body bs-kettle" cx="0" cy="-20" r="4"/>`;
+}
 const PIPE_H = 34;
 const VALVE_X = 320;
 const WATER_BOTTOM = 307;
@@ -27,6 +46,7 @@ export const mount: ChapterMount = ({ stage, panel, complete: onComplete }) => {
   let volts = 230;
   let ohms = 100;
   let find: 'V' | 'I' | 'R' = 'I';
+  let appliance: Appliance = 'lamp';
 
   /* ------------------------------ the picture ------------------------------ */
   stage.innerHTML = `
@@ -48,10 +68,19 @@ export const mount: ChapterMount = ({ stage, panel, complete: onComplete }) => {
       <text class="bs-big" id="bs-i" x="258" y="258" text-anchor="middle">2.30 A</text>
 
       <circle class="bs-glow" id="bs-glow" cx="538" cy="${PIPE_Y}" r="40"/>
-      <circle class="bs-lamp" cx="538" cy="${PIPE_Y}" r="26"/>
-      <path class="bs-fil" d="M527 ${PIPE_Y + 6} l5 -10 l6 10 l6 -10 l5 10"/>
+      <g transform="translate(538 ${PIPE_Y})">
+        <g class="bs-app" id="bs-app-lamp">${applianceArt('lamp')}</g>
+        <g class="bs-app" id="bs-app-hairdryer" hidden>${applianceArt('hairdryer')}</g>
+        <g class="bs-app" id="bs-app-kettle" hidden>${applianceArt('kettle')}</g>
+      </g>
       <text class="bs-label" x="538" y="222" text-anchor="middle">POWER · work done</text>
       <text class="bs-big" id="bs-p" x="538" y="334" text-anchor="middle">529 W</text>
+      ${(['lamp', 'hairdryer', 'kettle'] as const)
+        .map(
+          (k, i) => `<g class="bs-pick" data-pick="${k}" role="button" tabindex="0" aria-label="Show a ${k}" transform="translate(${538 + (i - 1) * 56} 372)">
+        <circle r="24"/><g transform="scale(0.4)">${applianceArt(k)}</g></g>`,
+        )
+        .join('')}
 
       <foreignObject x="30" y="320" width="170" height="40"><div class="bs-slider slider-card"><input type="range" id="bs-vin" aria-label="Voltage" min="0" max="250" step="1" value="${volts}" /></div></foreignObject>
       <foreignObject x="265" y="366" width="170" height="36"><div class="bs-slider slider-card"><input type="range" id="bs-rin" aria-label="Resistance" min="5" max="600" step="1" value="${ohms}" /></div></foreignObject>
@@ -163,8 +192,19 @@ export const mount: ChapterMount = ({ stage, panel, complete: onComplete }) => {
     const dotR = Math.min(4, gap / 2.4);
     dots.forEach((d) => d.setAttribute('r', String(dotR)));
 
-    // lamp brightness = power
+    // which appliance is drawn, and how hard it is working
+    (['lamp', 'hairdryer', 'kettle'] as const).forEach((k) => {
+      g(`bs-app-${k}`).toggleAttribute('hidden', k !== appliance);
+      g(`bs-app-${k}`).style.display = k === appliance ? '' : 'none';
+    });
+    stage.querySelectorAll<SVGElement>('.bs-pick').forEach((el) => el.classList.toggle('is-on', el.dataset.pick === appliance));
+    const working = String(Math.min(1, power / 2200));
+    g('bs-app-hairdryer').style.setProperty('--work', working);
+    g('bs-app-kettle').style.setProperty('--work', working);
+
+    // glow = power
     const glow = g('bs-glow');
+    glow.style.fill = appliance === 'lamp' ? '#ffd24a' : '#ff9a4a';
     glow.setAttribute('r', String(30 + Math.min(26, power / 90)));
     glow.style.opacity = String(Math.min(0.7, power / 1800));
 
@@ -207,6 +247,7 @@ export const mount: ChapterMount = ({ stage, panel, complete: onComplete }) => {
   panel.querySelectorAll<HTMLElement>('[data-preset]').forEach((b) =>
     b.addEventListener('click', () => {
       const p = presets.find((x) => x.id === b.dataset.preset)!;
+      appliance = p.id as Appliance;
       volts = p.volts;
       ohms = p.ohms;
       vin.value = String(volts);
@@ -214,6 +255,19 @@ export const mount: ChapterMount = ({ stage, panel, complete: onComplete }) => {
       update();
     }),
   );
+  stage.querySelectorAll<SVGElement>('.bs-pick').forEach((el) => {
+    const choose = () => {
+      const p = presets.find((x) => x.id === el.dataset.pick)!;
+      appliance = p.id as Appliance;
+      volts = p.volts;
+      ohms = p.ohms;
+      vin.value = String(volts);
+      rin.value = String(ohms);
+      update();
+    };
+    el.addEventListener('click', choose);
+    el.addEventListener('keydown', (e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), choose()));
+  });
   panel.querySelectorAll<HTMLElement>('[data-find]').forEach((b) =>
     b.addEventListener('click', () => {
       find = b.dataset.find as 'V' | 'I' | 'R';

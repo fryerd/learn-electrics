@@ -347,24 +347,47 @@ export function sceneSVG() {
     <rect class="nw-shell" x="1768" y="246" width="218" height="194"/>
     <path class="nw-svc nw-ph1" d="M 1816 490 V 424"/>
     <circle class="nw-joint" cx="1816" cy="490" r="3.2"/>
-    <path class="nw-tails" d="M 1816 386 V 362 H 1857 V 372 M 1857 412 V 426 H 1926 V 406"/>
+    <path class="nw-tails" d="M 1816 386 V 362 H 1857 V 372 M 1857 412 V 426 H 1926 V 414"/>
     <path class="nw-circuit" d="M 1926 366 V 250 H 1905 V 262"/>
 
     <g class="nw-part" data-part="8">
       <rect class="nw-cutout" x="1805" y="386" width="22" height="38" rx="3"/>
-      <rect class="nw-carrier" x="1809" y="394" width="14" height="18" rx="2"/>
+      <rect class="nw-cutcap" x="1807" y="388" width="18" height="5" rx="1"/>
+      <rect class="nw-carrier" x="1809" y="396" width="14" height="18" rx="2"/>
+      <path class="nw-grip" d="M 1812 400 H 1820 M 1812 404 H 1820"/>
       <circle class="nw-seal" cx="1823" cy="418" r="1.6"/>
+      <path class="nw-wire" d="M 1823 416.5 Q 1817 412 1815 415"/>
+      <circle class="nw-term" cx="1810" cy="420" r="1.2"/><circle class="nw-term" cx="1818" cy="420" r="1.2"/>
     </g>
     <g class="nw-part" data-part="9">
       <rect class="nw-meter" x="1842" y="372" width="30" height="40" rx="3"/>
+      <circle class="nw-seal" cx="1857" cy="375.5" r="1.3"/>
       <rect class="nw-lcd" x="1846.5" y="378" width="21" height="9" rx="1.5"/>
+      <text class="nw-digits" x="1857" y="384.6" text-anchor="middle">00482</text>
+      <text class="nw-unit" x="1866.5" y="390" text-anchor="end">kWh</text>
       <circle class="nw-led" cx="1851" cy="395" r="1.6"/>
-      <rect class="nw-btn" x="1858" y="393" width="8" height="4" rx="1"/>
+      <circle class="nw-port" cx="1864" cy="394" r="2.6"/>
+      <rect class="nw-btn" x="1853" y="393" width="6" height="4" rx="1"/>
+      <path class="nw-grip" d="M 1846 400 H 1868 M 1846 402.5 H 1860"/>
+      <rect class="nw-tcover" x="1845" y="404.5" width="24" height="6" rx="1"/>
+      ${[0, 1, 2, 3].map((i) => `<circle class="nw-term" cx="${1848 + i * 6}" cy="407.5" r="1.1"/>`).join('')}
     </g>
     <g class="nw-part" data-part="10">
-      <rect class="nw-cu" x="1893" y="366" width="66" height="40" rx="4"/>
-      <rect class="nw-main-sw" x="1898" y="374" width="9" height="20" rx="1.5"/>
-      ${[0, 1, 2, 3, 4].map((i) => `<rect class="nw-mcb" x="${1911 + i * 9}" y="376" width="7" height="16" rx="1"/>`).join('')}
+      <rect class="nw-cu" x="1893" y="366" width="66" height="48" rx="4"/>
+      <rect class="nw-cu-hd" x="1895" y="368" width="62" height="6" rx="2"/>
+      <rect class="nw-main-sw" x="1898" y="378" width="9" height="22" rx="1.5"/>
+      <rect class="nw-tog" x="1900.5" y="380" width="4" height="8" rx="1"/>
+      <rect class="nw-rcd" x="1909" y="378" width="13" height="22" rx="1.5"/>
+      <rect class="nw-test" x="1912" y="381" width="7" height="4" rx="1"/>
+      <rect class="nw-tog" x="1914" y="388" width="3" height="8" rx="1"/>
+      ${[0, 1, 2, 3]
+        .map(
+          (i) =>
+            `<g><rect class="nw-mcb" x="${1925 + i * 8}" y="378" width="7" height="22" rx="1"/><rect class="nw-tog" x="${1926.5 + i * 8}" y="381" width="4" height="8" rx="1"/><rect class="nw-band" x="${1925 + i * 8}" y="394" width="7" height="3" fill="${['#e8e8e8', '#2f7fd0', '#e8e8e8', '#f2c40f'][i]}"/></g>`,
+        )
+        .join('')}
+      <rect class="nw-label" x="1897" y="403" width="58" height="8" rx="1.5"/>
+      <path class="nw-grip" d="M 1900 405.5 H 1913 M 1916 405.5 H 1930 M 1933 405.5 H 1948 M 1900 408.5 H 1920 M 1923 408.5 H 1940"/>
     </g>
     <circle class="nw-lampglow" cx="1905" cy="270" r="22"/>
     <path class="nw-shade" d="M 1897 268 L 1913 268 L 1909 260 L 1901 260 Z"/>

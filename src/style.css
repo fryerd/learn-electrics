@@ -1166,3 +1166,51 @@ h1 {
   margin: 0;
   display: block;
 }
+
+/* chapter 1: appliances */
+.bs-body {
+  stroke: var(--ink);
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+.bs-dryer {
+  fill: #ffd9d2;
+}
+.bs-kettle {
+  fill: #dfe8f2;
+}
+.bs-base {
+  fill: #b9c4d3;
+}
+.bs-heat,
+.bs-steam {
+  fill: none;
+  stroke: #e07a2f;
+  stroke-width: 3;
+  stroke-linecap: round;
+  opacity: calc(0.15 + 0.85 * var(--work, 0));
+}
+.bs-steam {
+  stroke: #8fa3ba;
+}
+.bs-pick {
+  cursor: pointer;
+  outline: none;
+}
+.bs-pick circle {
+  fill: var(--paper);
+  stroke: var(--line);
+  stroke-width: 2.5;
+}
+.bs-pick:hover circle,
+.bs-pick:focus-visible circle {
+  stroke: var(--ink-soft);
+}
+.bs-pick.is-on circle {
+  stroke: var(--accent);
+  stroke-width: 3.5;
+}
+.bs-pick .bs-heat,
+.bs-pick .bs-steam {
+  opacity: 0.5;
+}

@@ -1,4 +1,5 @@
 import './guide.css';
+import { chapters } from '../data/chapters';
 
 /** One step of a chapter's walkthrough, shown in a card on the main stage. */
 export interface GuideStep {
@@ -93,8 +94,7 @@ export function mountGuide(stage: HTMLElement, steps: GuideStep[], opts: GuideOp
     if (s.tryIt) tryBox.querySelector('span')!.textContent = s.tryIt;
     back.disabled = index === 0;
     const last = index === steps.length - 1;
-    next.disabled = last;
-    next.innerHTML = last ? 'Done' : 'Next &rsaquo;';
+    next.innerHTML = last ? 'Next chapter &rsaquo;' : 'Next &rsaquo;';
     dots.querySelectorAll('.gd-dot').forEach((d, j) => {
       d.classList.toggle('is-on', j === index);
       d.classList.toggle('is-past', j < index);
@@ -113,7 +113,13 @@ export function mountGuide(stage: HTMLElement, steps: GuideStep[], opts: GuideOp
   $('.gd-min').addEventListener('click', () => setHidden(true));
   open.addEventListener('click', () => setHidden(false));
   back.addEventListener('click', () => go(index - 1));
-  next.addEventListener('click', () => go(index + 1));
+  next.addEventListener('click', () => {
+    if (index < steps.length - 1) return go(index + 1);
+    // Last step: carry on to the next chapter (or back to the homepage after the final one).
+    const here = chapters.findIndex((c) => location.hash.replace(/^#\/?/, '') === c.id);
+    const after = chapters[here + 1];
+    location.hash = here >= 0 && after ? `#/${after.id}` : '#/';
+  });
 
   // Wide screens: the card floats over the picture. Phones: it is docked as its own block under the
   // picture (so it never covers it), and follows its chapter being shown or hidden.

@@ -184,8 +184,8 @@ export const mount: ChapterMount = ({ stage, panel, complete: onComplete }) => {
         <p class="nw-card-own" id="nw-card-own"></p>
       </div>
 
-      <button type="button" class="nw-switch" id="nw-own-toggle" aria-pressed="false"><span class="nw-knob" aria-hidden="true"></span>Show who owns what</button>
-      <ul class="nw-legend" id="nw-legend" hidden>${(Object.keys(owners) as Owner[])
+      <button type="button" class="nw-switch" id="nw-own-toggle" aria-pressed="true"><span class="nw-knob" aria-hidden="true"></span>Show who owns what</button>
+      <ul class="nw-legend" id="nw-legend">${(Object.keys(owners) as Owner[])
         .map((o) => `<li><i style="background:${owners[o].colour}"></i><span><b>${owners[o].label}</b>${owners[o].text}</span></li>`)
         .join('')}</ul>
 
@@ -271,7 +271,7 @@ export const mount: ChapterMount = ({ stage, panel, complete: onComplete }) => {
 
   /* ================================ journey ================================ */
   let focus = 0; // -1 = whole route
-  let owning = false;
+  let owning = true;
   let findIdx = 0;
   let findMsg = '';
 
@@ -751,7 +751,7 @@ export const mount: ChapterMount = ({ stage, panel, complete: onComplete }) => {
   /* ================================ the guided walkthrough ================================ */
   const idx = (id: string) => stages.findIndex((s) => s.id === id);
   // Each step shows one part of the trip on the map. The bar under the map still steps through all the stages.
-  const show = (id: string | null, own = false) => {
+  const show = (id: string | null, own = true) => {
     if (tab !== 'journey') setTab('journey');
     if (owning !== own) setOwning(own);
     select(id ? idx(id) : -1);
