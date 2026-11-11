@@ -1503,3 +1503,12 @@ body.cu-dragging * {
 .cu-scene.is-building .cu-toast {
   bottom: 148px;
 }
+
+#cu-pop {
+  cursor: grab;
+  touch-action: none;
+}
+#cu-pop.is-dragging {
+  cursor: grabbing;
+  box-shadow: 0 16px 34px rgba(29, 35, 43, 0.3);
+}

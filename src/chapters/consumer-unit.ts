@@ -296,6 +296,28 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
   const hidePop = () => {
     pop.hidden = true;
   };
+  // The label can be dragged anywhere on the picture.
+  pop.addEventListener('pointerdown', (e) => {
+    if ((e.target as HTMLElement).closest('button')) return;
+    e.preventDefault();
+    pop.setPointerCapture(e.pointerId);
+    const dx = e.clientX - pop.offsetLeft;
+    const dy = e.clientY - pop.offsetTop;
+    pop.classList.add('is-dragging');
+    const move = (m: PointerEvent) => {
+      pop.style.left = `${Math.max(0, Math.min(sceneEl.clientWidth - pop.offsetWidth, m.clientX - dx))}px`;
+      pop.style.top = `${Math.max(0, Math.min(sceneEl.clientHeight - pop.offsetHeight, m.clientY - dy))}px`;
+    };
+    const up = () => {
+      pop.classList.remove('is-dragging');
+      pop.removeEventListener('pointermove', move);
+      pop.removeEventListener('pointerup', up);
+      pop.removeEventListener('pointercancel', up);
+    };
+    pop.addEventListener('pointermove', move);
+    pop.addEventListener('pointerup', up);
+    pop.addEventListener('pointercancel', up);
+  });
   const placePop = (anchor: Element | null) => {
     const sr = sceneEl.getBoundingClientRect();
     const ar = anchor?.getBoundingClientRect();
