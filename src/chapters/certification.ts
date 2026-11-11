@@ -591,8 +591,8 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
     [
       {
         title: 'Prove it, then write it down',
-        text: 'New wiring is not finished until it has been tested and the results recorded. This workshop board has a consumer unit, a ring of six sockets, four lights and a multifunction tester.',
-        tryIt: 'Find the main switch on the consumer unit. It is off, so the circuits are isolated and safe to test.',
+        text: 'New wiring is not finished until it is tested and the results recorded. This board has a consumer unit, a ring of six sockets, four lights and a tester.',
+        tryIt: 'Find the main switch on the consumer unit. It is off, so the circuits are isolated for the dead tests.',
         onEnter: () => {
           setUp('off', false);
           pulse(onStage('.ct-main'));
@@ -613,7 +613,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
         kicker: 'Dead test · Ω',
         title: 'Cross the ring, check every socket',
         text: 'Join the line of each leg to the CPC of the other at the board. On a healthy ring every socket then reads about the same, and the highest reading is R1 + R2.',
-        tryIt: 'Click the line and earth terminals of Socket 1, then of Socket 4. The readings should be close.',
+        tryIt: 'Click the L and E terminals of S1, then of S5. The readings should be close.',
         onEnter: () => {
           setUp('cont', false, 'ring-LE');
           rig.nulled = true;
@@ -640,13 +640,13 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
         tryIt: 'Click a socket on the board to plug the tester in, and read Zs.',
         onEnter: () => {
           setUp('zs', true);
-          pulse(onStage('[data-place="S2"]'));
+          pulse(onStage('[data-place="S5"]'));
         },
       },
       {
         kicker: 'Live test · RCD',
         title: 'RCD: fast enough to protect people',
-        text: 'The tester leaks a set current to earth and times the trip. A 30 mA RCD should not trip at half its rating, and should trip within 300 ms at 1× and 40 ms at 5×.',
+        text: 'The tester leaks a set current to earth and times the trip. A 30 mA RCD should not trip at ×½, should trip within 300 ms at ×1 and within 40 ms at ×5.',
         tryIt: 'Press ×½, then ×1. After a trip, click the RCD on the board to reset it.',
         onEnter: () => {
           setUp('rcd', true);
@@ -663,7 +663,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
         },
       },
     ],
-    { position: 'bottom-right' },
+    { position: 'top-right' },
   );
 
   return {
