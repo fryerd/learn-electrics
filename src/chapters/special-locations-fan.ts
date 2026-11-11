@@ -119,21 +119,22 @@ export function mountFan(stage: HTMLElement, view: HTMLElement): FanScene {
   stage.append(root);
 
   view.innerHTML = `
-    <div class="detail"><h2>The extractor fan</h2>
-      <p>A <b>switched line</b> starts the fan with the light; a <b>permanent line</b> keeps its timer running. Try the controls, then tap the parts.</p></div>
-    <div class="sl-fan-controls">
-      <button type="button" class="primary" id="sl-btn-light" aria-pressed="false">Pull the light cord</button>
-      <button type="button" class="ghost" id="sl-btn-iso" aria-pressed="true">Isolator: on</button>
+    <div class="sl-g" data-g="controls">
+      <div class="sl-fan-controls">
+        <button type="button" class="primary" id="sl-btn-light" aria-pressed="false">Pull the light cord</button>
+        <button type="button" class="ghost" id="sl-btn-iso" aria-pressed="true">Isolator: on</button>
+      </div>
+      <div class="readouts">
+        <div class="readout"><small>Light</small><b id="sl-r-light">Off</b></div>
+        <div class="readout"><small>Fan</small><b id="sl-r-fan">Stopped</b></div>
+      </div>
+      <ul class="wire-results sl-tries" id="sl-tries"></ul>
     </div>
-    <div class="readouts">
-      <div class="readout"><small>Light</small><b id="sl-r-light">Off</b></div>
-      <div class="readout"><small>Fan</small><b id="sl-r-fan">Stopped</b></div>
-    </div>
-    <ul class="wire-results sl-tries" id="sl-tries"></ul>
-    <div class="wire-label sl-gap">Parts</div>
-    <div class="parts-list sl-parts">${fanParts.map((p, i) => `<button type="button" data-partbtn="${p.id}"><span class="badge">${i + 1}</span>${p.name}</button>`).join('')}</div>
-    <div class="sl-explain" id="sl-explain" aria-live="polite"></div>
-    <div class="uk sl-gap"><b>UK standards</b>The isolator, and any switch for the fan, must be outside the zones (often just outside the bathroom door). Fit the fuse rating the fan maker asks for.</div>`;
+    <div class="sl-g" data-g="parts">
+      <div class="wire-label">Parts</div>
+      <div class="parts-list sl-parts">${fanParts.map((p, i) => `<button type="button" data-partbtn="${p.id}"><span class="badge">${i + 1}</span>${p.name}</button>`).join('')}</div>
+      <div class="sl-explain" id="sl-explain" aria-live="polite"></div>
+    </div>`;
 
   const sq = <T extends Element>(sel: string) => root.querySelector<T>(sel)!;
   const vq = <T extends Element>(sel: string) => view.querySelector<T>(sel)!;

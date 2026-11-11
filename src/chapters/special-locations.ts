@@ -1,4 +1,4 @@
-import { quiz } from '../data/special-locations-lesson';
+import { lesson, quiz } from '../data/special-locations-lesson';
 import { mountGuide, pulse } from '../ui/guide';
 import { mountQuiz } from '../ui/quiz';
 import { mountBathroom } from './special-locations-bathroom';
@@ -25,9 +25,38 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
     ${TABS.map((t, i) => `<section role="tabpanel" id="sl-view-${t.id}" aria-labelledby="sl-tab-${t.id}"${i === 0 ? '' : ' hidden'}></section>`).join('')}`;
   const view = (t: Tab) => panel.querySelector<HTMLElement>(`#sl-view-${t}`)!;
 
-  const bath = mountBathroom(stage, view('fit'));
-  const ip = mountIp(stage, view('ip'));
-  const fan = mountFan(stage, view('fan'));
+  // The pictures and their controls live on the stage; the panel keeps the reading.
+  const main = document.createElement('div');
+  main.className = 'sl-main';
+  const bar = document.createElement('div');
+  bar.className = 'sl-trays';
+  bar.hidden = true;
+  stage.append(main, bar);
+  const trayFor = () => {
+    const d = document.createElement('div');
+    d.className = 'sl-tray-host';
+    d.hidden = true;
+    bar.append(d);
+    return d;
+  };
+  const trays = { bath: trayFor(), ip: trayFor(), fan: trayFor() };
+
+  view('fit').innerHTML = `
+    <div class="detail"><h2>${lesson.title}</h2><p>${lesson.intro}</p></div>
+    <p class="sl-lead">The wall, its zones and the kit to fit are on the picture, with the controls under it. The guide walks you through them.</p>
+    <div class="uk"><b>UK standards</b>BS 7671 section 701 covers rooms with a bath or shower. Every circuit serving the room needs 30 mA RCD protection. Supplementary bonding can often be left out where main bonding is in place and every circuit has that RCD protection: check the conditions before leaving it out.</div>`;
+  view('ip').innerHTML = `
+    <div class="detail"><h2>Decode an IP rating</h2>
+      <p>X means “not rated” for that part; the optional letter says what a person cannot poke in. Pick the parts under the picture and watch it change.</p></div>
+    <div class="uk"><b>UK standards</b>IP codes come from BS EN 60529. In a bathroom, fixed equipment in zones 1 and 2 needs at least IPX4 (IPX5 where water jets are used for cleaning), and zone 0 needs IPX7.</div>`;
+  view('fan').innerHTML = `
+    <div class="detail"><h2>The extractor fan</h2>
+      <p>A <b>switched line</b> starts the fan with the light; a <b>permanent line</b> keeps its timer running. Try the controls under the picture, then tap the parts.</p></div>
+    <div class="uk"><b>UK standards</b>The isolator, and any switch for the fan, must be outside the zones (often just outside the bathroom door). Fit the fuse rating the fan maker asks for.</div>`;
+
+  const bath = mountBathroom(main, trays.bath);
+  const ip = mountIp(main, trays.ip);
+  const fan = mountFan(main, trays.fan);
   mountQuiz(view('quiz'), quiz, {
     retryHint: 'Have another go at fitting out the bathroom and decoding a few IP codes, then try again.',
     onFinish: (score, total) => {
@@ -44,6 +73,20 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
     fan.setVisible(s === 'fan');
     // The guide sits bottom-right, except over the fan, whose bottom-right holds the fan itself.
     stage.classList.toggle('sl-guide-top', s === 'fan');
+    trays.bath.hidden = s !== 'bath';
+    trays.ip.hidden = s !== 'ip';
+    trays.fan.hidden = s !== 'fan';
+    bar.hidden = !(s === 'bath' ? groupsOn.bath : s === 'ip' ? groupsOn.ip : groupsOn.fan);
+  };
+  /** Show only the controls this step is about (within the current picture's tray). */
+  const groupsOn = { bath: true, ip: true, fan: true };
+  const showGroups = (ids: string[]) => {
+    const host = scene === 'bath' ? trays.bath : scene === 'ip' ? trays.ip : trays.fan;
+    host.querySelectorAll<HTMLElement>('.sl-g').forEach((g) => (g.hidden = !ids.includes(g.dataset.g!)));
+    bar.hidden = ids.length === 0;
+    groupsOn[scene] = ids.length > 0;
+    if (scene === 'bath') bath.resize();
+    else if (scene === 'fan') fan.resize();
   };
 
   const select = (t: Tab, focus = false) => {
@@ -86,6 +129,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
         text: 'Wet skin lets far more current through your body than dry skin, so a room with a bath or shower has its own rules. Every circuit in the room needs 30 mA RCD protection, and the room is split into zones.',
         onEnter: () => {
           select('fit');
+          showGroups([]);
           bath.showView('wall');
           bath.flashZones(['z0', 'z1', 'z2']);
         },
@@ -94,9 +138,10 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
         kicker: 'Zones 0, 1, 2',
         title: 'The closer to the water, the stricter',
         text: 'Zone 0 is inside the bath. Zone 1 is above it, up to 2.25 m. Zone 2 is a 0.6 m band beyond that. Everything else is outside the zones, and there is no zone 3.',
-        tryIt: 'Find the 2.25 m and 0.6 m marks on the wall.',
+        tryIt: 'Find the 2.25 m and 0.6 m marks on the wall, and the minimum IP rating for each zone below.',
         onEnter: () => {
           select('fit');
+          showGroups(['zones']);
           bath.showView('wall');
           bath.flashZones(['z1', 'z2']);
         },
@@ -108,6 +153,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
         tryIt: 'Drag the shaver supply unit onto the wall, first in zone 1, then in zone 2.',
         onEnter: () => {
           select('fit');
+          showGroups(['items', 'fb', 'challenge']);
           bath.showView('wall');
           pulse(bath.tray);
         },
@@ -119,8 +165,20 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
         tryIt: 'Place the 13 A socket by the door, then near the basin, and watch the measurement.',
         onEnter: () => {
           select('fit');
+          showGroups(['items', 'fb']);
           bath.showView('wall');
           pulse(bath.tray);
+        },
+      },
+      {
+        kicker: 'Challenge',
+        title: 'Fit every item',
+        text: 'Fit all the items where they are allowed until the bathroom is signed off. Some have only one sensible home; one has nowhere in this room except a far corner.',
+        tryIt: 'Watch the tally under the picture fill up.',
+        onEnter: () => {
+          select('fit');
+          showGroups(['challenge', 'items', 'fb']);
+          bath.showView('wall');
         },
       },
       {
@@ -130,9 +188,20 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
         tryIt: 'Set the water digit to 7.',
         onEnter: () => {
           select('ip');
+          showGroups(['seg', 'presets']);
           ip.setCode('IPX4');
           pulse(ip.codeEl);
           pulse(ip.row('second'));
+        },
+      },
+      {
+        kicker: 'Game',
+        title: 'Choose the IP rating',
+        text: 'For each place, pick the rating that is enough. Too low is unsafe; too high costs more for nothing.',
+        tryIt: 'Answer the questions under the picture.',
+        onEnter: () => {
+          select('ip');
+          showGroups(['game']);
         },
       },
       {
@@ -142,29 +211,41 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
         tryIt: 'Pull the cord on, then off, and watch the run-on. Then turn the isolator off.',
         onEnter: () => {
           select('fan');
+          showGroups(['controls']);
           fan.reset();
           pulse(fan.lightBtn);
         },
       },
       {
-        title: 'Now it is your turn',
-        text: 'Fit every item in the bathroom until it is signed off, play the IP game, then take the quiz to tick this chapter off.',
-        tryIt: 'Open the Quiz tab when you are ready.',
+        kicker: 'Extractor fan',
+        title: 'Know the parts',
+        text: 'Tap any part of the circuit on the picture, or its name below it, to see what it does and why it is there.',
+        tryIt: 'Tap the three-pole isolator.',
+        onEnter: () => {
+          select('fan');
+          showGroups(['parts']);
+        },
+      },
+      {
+        title: 'Now the quiz',
+        text: 'You have fitted the bathroom, decoded IP ratings and wired the fan. Take the quiz to tick this chapter off.',
+        tryIt: 'Open the Quiz tab.',
         onEnter: () => {
           select('fit');
+          showGroups([]);
           bath.showView('wall');
           pulse(tabBtn('quiz'));
         },
       },
     ],
-    { position: 'bottom-right' },
+    { position: 'top-right' },
   );
 
   showScene('bath');
   void tab;
   return {
     activate() {
-      ro.observe(stage);
+      ro.observe(main);
       fan.activate();
       if (scene === 'bath') bath.resize();
       else if (scene === 'fan') fan.resize();

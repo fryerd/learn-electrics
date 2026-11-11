@@ -15,7 +15,6 @@ import {
   itemById,
   items,
   judge,
-  lesson,
   minIp,
   settle,
   spotPosition,
@@ -126,33 +125,35 @@ export function mountBathroom(stage: HTMLElement, view: HTMLElement): BathroomSc
 
   /* ------------------------------------------------------------------ panel */
   view.innerHTML = `
-    <div class="detail"><h2>${lesson.title}</h2><p>${lesson.intro}</p></div>
-    <div class="challenge" id="sl-challenge"></div>
-    <div class="wire-label sl-gap">Items to fit</div>
-    <div class="sl-tray" role="group" aria-label="Items to fit">
-      ${items
-        .map(
-          (it) => `<button type="button" class="chip sl-item" data-item="${it.id}" aria-pressed="false">
-            ${iconSvg(it.id)}<span class="sl-item-text"><b>${it.name}</b><small>${it.sub}</small></span><span class="sl-mark" aria-hidden="true"></span>
-          </button>`,
-        )
-        .join('')}
+    <div class="sl-g" data-g="challenge"><div class="challenge" id="sl-challenge"></div></div>
+    <div class="sl-g" data-g="items">
+      <div class="wire-label">Items to fit</div>
+      <div class="sl-tray" role="group" aria-label="Items to fit">
+        ${items
+          .map(
+            (it) => `<button type="button" class="chip sl-item" data-item="${it.id}" aria-pressed="false">
+              ${iconSvg(it.id)}<span class="sl-item-text"><b>${it.name}</b><small>${it.sub}</small></span><span class="sl-mark" aria-hidden="true"></span>
+            </button>`,
+          )
+          .join('')}
+      </div>
+      <div class="sl-place" id="sl-place" hidden>
+        <div class="wire-label">Or place the <span id="sl-place-name"></span> in</div>
+        <div class="sl-spots">${spots.map((s) => `<button type="button" class="ghost" data-spot="${s.id}">${s.label}</button>`).join('')}</div>
+      </div>
+      <div class="wire-actions"><button type="button" class="ghost" id="sl-reset">Start again</button></div>
     </div>
-    <div class="sl-place" id="sl-place" hidden>
-      <div class="wire-label">Or place the <span id="sl-place-name"></span> in</div>
-      <div class="sl-spots">${spots.map((s) => `<button type="button" class="ghost" data-spot="${s.id}">${s.label}</button>`).join('')}</div>
-    </div>
-    <div id="sl-fb" aria-live="polite"></div>
-    <div class="wire-actions"><button type="button" class="ghost" id="sl-reset">Start again</button></div>
-    <div class="wire-label sl-gap">The zones</div>
-    <ul class="sl-zones">
-      ${(['z0', 'z1', 'z2', 'out'] as Zone[])
-        .map(
-          (z) => `<li><i class="sl-sw sl-sw-${z}"></i><div><b>${zoneName[z]}</b> ${zoneWhere[z]}<small>Minimum: ${minIp[z]}</small></div></li>`,
-        )
-        .join('')}
-    </ul>
-    <div class="uk"><b>UK standards</b>BS 7671 section 701 covers rooms with a bath or shower. Every circuit serving the room needs 30 mA RCD protection. Supplementary bonding can often be left out where main bonding is in place and every circuit has that RCD protection: check the conditions before leaving it out.</div>`;
+    <div class="sl-g" data-g="fb"><div id="sl-fb" aria-live="polite"></div></div>
+    <div class="sl-g" data-g="zones">
+      <div class="wire-label">The zones</div>
+      <ul class="sl-zones">
+        ${(['z0', 'z1', 'z2', 'out'] as Zone[])
+          .map(
+            (z) => `<li><i class="sl-sw sl-sw-${z}"></i><div><b>${zoneName[z]}</b> ${zoneWhere[z]}<small>Minimum: ${minIp[z]}</small></div></li>`,
+          )
+          .join('')}
+      </ul>
+    </div>`;
 
   const q = <T extends Element>(sel: string) => view.querySelector<T>(sel)!;
   const chips = new Map<ItemId, HTMLButtonElement>();

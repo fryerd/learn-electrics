@@ -1241,3 +1241,57 @@ rect.sl-ip-obj + .sl-ip-shaft {
 .sl-stage:has(> .gd:not([hidden]) > .gd-card:not([hidden])) .sl-ip-wrap {
   gap: 6px;
 }
+
+/* --- the pictures and their controls live on the stage (the guide shows one group per step) --- */
+.sl-stage {
+  display: flex;
+  flex-direction: column;
+}
+.sl-main {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+.sl-trays {
+  flex: none;
+  max-height: 46%;
+  overflow: auto;
+  padding: 8px 14px 12px;
+  background: var(--card);
+  border-top: 2px solid var(--line);
+}
+.sl-trays[hidden],
+.sl-tray-host[hidden],
+.sl-g[hidden] {
+  display: none;
+}
+.sl-tray-host {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  align-items: flex-start;
+}
+.sl-g {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+.sl-trays .sl-tray {
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+}
+.sl-lead {
+  font-size: 14.5px;
+  color: var(--ink-soft);
+}
+.sl-g[data-g='items'] {
+  flex: 4 1 520px;
+}
+.sl-trays .sl-tray {
+  grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+  gap: 6px;
+}
+.sl-trays .sl-item {
+  padding: 4px 6px;
+}
+.sl-trays .sl-item small {
+  display: none;
+}

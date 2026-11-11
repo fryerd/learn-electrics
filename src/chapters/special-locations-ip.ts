@@ -108,17 +108,19 @@ export function mountIp(stage: HTMLElement, view: HTMLElement): IpScene {
     </div>`;
 
   view.innerHTML = `
-    <div class="detail"><h2>Decode an IP rating</h2>
-      <p>Pick the parts and watch the picture. X means “not rated” for that part; the optional letter says what a person cannot poke in.</p></div>
-    ${seg('first', 'First digit: solids', ['X', '0', '1', '2', '3', '4', '5', '6'])}
-    ${seg('second', 'Second digit: water', ['X', '0', '1', '2', '3', '4', '5', '6', '7', '8'])}
-    ${seg('letter', 'Letter (optional)', ['', 'A', 'B', 'C', 'D'], (v) => v || 'None')}
-    <div class="wire-label sl-gap">Ratings you will see</div>
-    <div class="presets">${ipCommon.map((c) => `<button type="button" class="ghost" data-code="${c}">${c}</button>`).join('')}</div>
-
-    <div class="wire-label sl-gap">Game: choose the IP rating</div>
-    <div class="sl-game" id="sl-game"></div>
-    <div class="uk sl-gap"><b>UK standards</b>IP codes come from BS EN 60529. In a bathroom, fixed equipment in zones 1 and 2 needs at least IPX4 (IPX5 where water jets are used for cleaning), and zone 0 needs IPX7.</div>`;
+    <div class="sl-g" data-g="seg">
+      ${seg('first', 'First digit: solids', ['X', '0', '1', '2', '3', '4', '5', '6'])}
+      ${seg('second', 'Second digit: water', ['X', '0', '1', '2', '3', '4', '5', '6', '7', '8'])}
+      ${seg('letter', 'Letter (optional)', ['', 'A', 'B', 'C', 'D'], (v) => v || 'None')}
+    </div>
+    <div class="sl-g" data-g="presets">
+      <div class="wire-label">Ratings you will see</div>
+      <div class="presets">${ipCommon.map((c) => `<button type="button" class="ghost" data-code="${c}">${c}</button>`).join('')}</div>
+    </div>
+    <div class="sl-g" data-g="game">
+      <div class="wire-label">Game: choose the IP rating</div>
+      <div class="sl-game" id="sl-game"></div>
+    </div>`;
 
   const q = <T extends Element>(sel: string, el: ParentNode = root) => el.querySelector<T>(sel)!;
 
