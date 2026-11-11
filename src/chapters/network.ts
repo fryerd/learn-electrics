@@ -13,6 +13,7 @@ import {
   stages,
   type Owner,
 } from '../data/network-lesson';
+import { mountGuide, pulse } from '../ui/guide';
 import { mountQuiz } from '../ui/quiz';
 import { fmtAmps, fmtPercent, fmtPower, supplyLoad, supplyState, transmit, UK_VOLTS } from './network-calc';
 import { OVERVIEW, routes, sceneSVG, type Box } from './network-scene';
@@ -70,8 +71,8 @@ export const mount: ChapterMount = ({ stage, panel, complete: onComplete }) => {
         <small id="nw-hud-sub"></small>
         <span class="nw-ownchip" id="nw-hud-own" hidden></span>
       </div>
-      <button type="button" class="nw-float nw-overview" id="nw-overview" aria-pressed="false">Whole route</button>
       <div class="nw-bar">
+        <button type="button" class="nw-float nw-overview" id="nw-overview" aria-pressed="false">Whole route</button>
         <button type="button" class="nw-step" id="nw-back" aria-label="Previous stage">‹</button>
         <div class="nw-dots" role="group" aria-label="Stages">${stages
           .map((s, i) => `<button type="button" class="nw-dot" data-dot="${i}" aria-label="${i + 1}. ${s.title}"><i></i></button>`)
@@ -181,10 +182,6 @@ export const mount: ChapterMount = ({ stage, panel, complete: onComplete }) => {
         <div class="nw-card-v" id="nw-card-v"></div>
         <p id="nw-card-text"></p>
         <p class="nw-card-own" id="nw-card-own"></p>
-        <div class="nw-card-nav">
-          <button type="button" class="ghost" id="nw-card-back">‹ Back</button>
-          <button type="button" class="primary" id="nw-card-next">Next ›</button>
-        </div>
       </div>
 
       <button type="button" class="nw-switch" id="nw-own-toggle" aria-pressed="false"><span class="nw-knob" aria-hidden="true"></span>Show who owns what</button>
@@ -260,7 +257,9 @@ export const mount: ChapterMount = ({ stage, panel, complete: onComplete }) => {
     stage.querySelectorAll<HTMLElement>('.nw-scene').forEach((s) => (s.hidden = s.dataset.scene !== sceneFor(t)));
     if (sceneFor(t) === 'map') retarget(true);
     if (t === 'hv') hvLayout();
+    guide?.setVisible(sceneFor(t) === 'map');
   };
+  let guide: ReturnType<typeof mountGuide> | undefined;
   panel.querySelectorAll<HTMLElement>('[role=tab]').forEach((b) => b.addEventListener('click', () => setTab(b.dataset.tab as Tab)));
 
   mountQuiz(p$('[data-view="quiz"]'), quiz, {
@@ -398,14 +397,10 @@ export const mount: ChapterMount = ({ stage, panel, complete: onComplete }) => {
         ? `<span class="nw-vchip ${level(card.vIn)}">${card.vIn}</span>${card.sub ? `<small>${card.sub}</small>` : ''}`
         : `<span class="nw-vchip ${level(card.vIn)}">${card.vIn}</span> → <span class="nw-vchip ${level(card.vOut)}">${card.vOut}</span>${card.sub ? `<small>${card.sub}</small>` : ''}`;
     p$('#nw-card-text').textContent = over
-      ? 'The pulse is making the whole trip. Pick any stage on the map, or use Next, to look closer.'
+      ? 'The pulse is making the whole trip. Pick any stage on the map, or use the arrows under it, to look closer.'
       : card.text;
     const own = owners[card.owner];
     p$('#nw-card-own').innerHTML = over ? '' : `<i style="background:${own.colour}"></i>Owned by: <b>${own.label}</b>`;
-    p$<HTMLButtonElement>('#nw-card-back').disabled = focus <= 0;
-    p$<HTMLButtonElement>('#nw-card-next').disabled = focus >= N - 1;
-    p$<HTMLButtonElement>('#nw-card-next').textContent = over ? 'Start ›' : 'Next ›';
-    if (over) p$<HTMLButtonElement>('#nw-card-next').disabled = false;
     // owner chip
     const chip = $('#nw-hud-own');
     chip.hidden = !owning || over;
@@ -419,8 +414,6 @@ export const mount: ChapterMount = ({ stage, panel, complete: onComplete }) => {
   const go = (d: number) => select(clamp((focus < 0 ? -1 : focus) + d, 0, N - 1));
   $('#nw-back').addEventListener('click', () => go(-1));
   $('#nw-next').addEventListener('click', () => go(1));
-  p$('#nw-card-back').addEventListener('click', () => go(-1));
-  p$('#nw-card-next').addEventListener('click', () => go(1));
   $('#nw-overview').addEventListener('click', () => select(focus < 0 ? 0 : -1));
   stage.querySelectorAll<HTMLElement>('[data-dot]').forEach((d) => d.addEventListener('click', () => select(Number(d.dataset.dot), true)));
   svg.querySelectorAll<SVGElement>('.nw-hit').forEach((h) =>
@@ -430,12 +423,13 @@ export const mount: ChapterMount = ({ stage, panel, complete: onComplete }) => {
     if (e.key === 'ArrowRight') go(1);
     else if (e.key === 'ArrowLeft') go(-1);
   });
-  p$('#nw-own-toggle').addEventListener('click', () => {
-    owning = !owning;
+  const setOwning = (o: boolean) => {
+    owning = o;
     p$('#nw-own-toggle').setAttribute('aria-pressed', String(owning));
     p$('#nw-legend').hidden = !owning;
     renderJourney();
-  });
+  };
+  p$('#nw-own-toggle').addEventListener('click', () => setOwning(!owning));
 
   function setHudVoltage(v: string, sub: string | undefined) {
     if (v === shownV) return;
@@ -753,6 +747,88 @@ export const mount: ChapterMount = ({ stage, panel, complete: onComplete }) => {
   updateSupply();
   drawGauge(0);
   setHudVoltage(stages[0].vIn, stages[0].sub);
+
+  /* ================================ the guided walkthrough ================================ */
+  const idx = (id: string) => stages.findIndex((s) => s.id === id);
+  // Each step shows one part of the trip on the map. The bar under the map still steps through all the stages.
+  const show = (id: string | null, own = false) => {
+    if (tab !== 'journey') setTab('journey');
+    if (owning !== own) setOwning(own);
+    select(id ? idx(id) : -1);
+  };
+  guide = mountGuide(
+    stage,
+    [
+      {
+        title: 'Power station to plug',
+        text: 'Your electricity makes a long trip before it reaches the socket. The glowing pulse follows it from the power station, across the country and down your street into the house.',
+        tryIt: 'Watch the voltage in the box at the top left fall as the pulse travels.',
+        onEnter: () => {
+          show(null);
+          pulse(stage.querySelector('.nw-hud'));
+        },
+      },
+      {
+        kicker: '≈ 25 kV → 400 kV',
+        title: 'Up for the long trip',
+        text: 'A power station generator makes electricity at up to about 25 kV. A step-up transformer raises it to 400 kV (or 275 kV) for the pylons. High voltage means a small current, so little is lost as heat.',
+        tryIt: 'Open the "Why HV?" tab and compare the heat lost at 230 V with 400 kV, then come back here.',
+        onEnter: () => {
+          show('tx');
+          pulse(panel.querySelector('[data-tab="hv"]'));
+        },
+      },
+      {
+        kicker: '400 kV → 132 → 33 → 11 kV',
+        title: 'Stepping down in stages',
+        text: 'Near towns, substations step the voltage down a bit at a time. At the grid supply point the regional network company (the DNO) takes over.',
+        tryIt: 'Press › under the map to follow the pulse through each substation.',
+        onEnter: () => {
+          show('gsp');
+          pulse(stage.querySelector('#nw-next'));
+        },
+      },
+      {
+        kicker: '11 kV → 400 V',
+        title: 'The transformer in your street',
+        text: 'The green box at the end of the road makes the last step: 400 V three-phase. Measured from one phase to neutral, that is the 230 V you get at home. Houses are shared across the three phases.',
+        tryIt: 'Press › to follow the street cable towards the houses.',
+        onEnter: () => {
+          show('local');
+          pulse(stage.querySelector('#nw-next'));
+        },
+      },
+      {
+        kicker: '230 V',
+        title: 'Into the house',
+        text: 'A service cable brings one phase and neutral to the cut-out: the sealed main fuse, typically 60 to 100 A. Only the DNO may open it.',
+        tryIt: 'Press › to see the meter and then the consumer unit.',
+        onEnter: () => {
+          show('cutout');
+          pulse(stage.querySelector('#nw-next'));
+        },
+      },
+      {
+        title: 'Who owns what',
+        text: 'Different companies own different parts. The DNO owns the network up to and including the cut-out, your supplier looks after the meter, and everything after the meter is yours.',
+        tryIt: 'Click each part of the house on the map and read the owner chip in the box at the top left.',
+        onEnter: () => {
+          show('meter', true);
+          pulse(panel.querySelector('#nw-own-toggle'));
+        },
+      },
+      {
+        title: 'Now it is your turn',
+        text: 'Try the "Spot it" challenge on the right, then use the "Why HV?" and "Supply" tools. Take the quiz to tick this chapter off.',
+        tryIt: 'Open the Quiz tab when you are ready.',
+        onEnter: () => {
+          show('cu');
+          pulse(panel.querySelector('[data-tab="quiz"]'));
+        },
+      },
+    ],
+    { position: 'top-right' },
+  );
 
   return {
     activate() {
