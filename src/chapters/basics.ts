@@ -30,7 +30,7 @@ export const mount: ChapterMount = ({ stage, panel, complete: onComplete }) => {
 
   /* ------------------------------ the picture ------------------------------ */
   stage.innerHTML = `
-    <svg viewBox="0 0 640 380" class="bs-svg" role="img" aria-label="A tank (voltage) feeding a pipe with a narrow section (resistance); the flow is the current and a lamp at the end shows the power.">
+    <svg viewBox="0 0 640 404" class="bs-svg" role="img" aria-label="A tank (voltage) feeding a pipe with a narrow section (resistance); the flow is the current and a lamp at the end shows the power.">
       <defs><clipPath id="bs-tank-clip"><rect x="44" y="74" width="142" height="233" rx="10"/></clipPath></defs>
       <text class="bs-label" x="115" y="54" text-anchor="middle">VOLTAGE · pressure</text>
       <rect class="bs-water" id="bs-water" x="44" y="100" width="142" height="207" clip-path="url(#bs-tank-clip)"/>
@@ -52,6 +52,9 @@ export const mount: ChapterMount = ({ stage, panel, complete: onComplete }) => {
       <path class="bs-fil" d="M527 ${PIPE_Y + 6} l5 -10 l6 10 l6 -10 l5 10"/>
       <text class="bs-label" x="538" y="222" text-anchor="middle">POWER · work done</text>
       <text class="bs-big" id="bs-p" x="538" y="334" text-anchor="middle">529 W</text>
+
+      <foreignObject x="30" y="320" width="170" height="40"><div class="bs-slider slider-card"><input type="range" id="bs-vin" aria-label="Voltage" min="0" max="250" step="1" value="${volts}" /></div></foreignObject>
+      <foreignObject x="265" y="366" width="170" height="36"><div class="bs-slider slider-card"><input type="range" id="bs-rin" aria-label="Resistance" min="5" max="600" step="1" value="${ohms}" /></div></foreignObject>
     </svg>`;
   const g = (id: string) => stage.querySelector<SVGElement>(`#${id}`)!;
   const dotsLayer = g('bs-dots');
@@ -73,14 +76,6 @@ export const mount: ChapterMount = ({ stage, panel, complete: onComplete }) => {
     <section role="tabpanel" id="bs-view-play">
       <div class="detail"><h2>${basics.title}</h2><p>${basics.intro}</p></div>
 
-      <div class="slider-card">
-        <label for="bs-vin">Voltage <b id="bs-vout">230 V</b></label>
-        <input type="range" id="bs-vin" min="0" max="250" step="1" value="${volts}" />
-      </div>
-      <div class="slider-card">
-        <label for="bs-rin">Resistance <b id="bs-rout">100 Ω</b></label>
-        <input type="range" id="bs-rin" min="5" max="600" step="1" value="${ohms}" />
-      </div>
       <div class="readouts">
         <div class="readout"><small>Current · I = V ÷ R</small><b id="bs-iout">2.30 A</b></div>
         <div class="readout"><small>Power · P = V × I</small><b id="bs-pout">529 W</b></div>
@@ -116,8 +111,8 @@ export const mount: ChapterMount = ({ stage, panel, complete: onComplete }) => {
     <section role="tabpanel" id="bs-view-quiz" hidden></section>`;
 
   const q = <T extends HTMLElement>(id: string) => panel.querySelector<T>(`#${id}`)!;
-  const vin = q<HTMLInputElement>('bs-vin');
-  const rin = q<HTMLInputElement>('bs-rin');
+  const vin = stage.querySelector<HTMLInputElement>('#bs-vin')!;
+  const rin = stage.querySelector<HTMLInputElement>('#bs-rin')!;
 
   // tabs
   const tabs: Record<'play' | 'quiz', { btn: HTMLElement; view: HTMLElement }> = {
@@ -174,8 +169,6 @@ export const mount: ChapterMount = ({ stage, panel, complete: onComplete }) => {
     glow.style.opacity = String(Math.min(0.7, power / 1800));
 
     // panel readouts
-    q('bs-vout').textContent = fmtV(volts);
-    q('bs-rout').textContent = fmtR(ohms);
     q('bs-iout').textContent = fmtA(current);
     q('bs-pout').textContent = fmtW(power);
 

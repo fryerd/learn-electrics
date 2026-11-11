@@ -1155,3 +1155,14 @@ h1 {
   padding-top: 20px;
   gap: 10px;
 }
+
+/* chapter 1: sliders sit on the picture, under the thing they control */
+.bs-slider {
+  margin: 0;
+  padding: 4px 6px;
+  border-radius: 10px;
+}
+.bs-slider input[type='range'] {
+  margin: 0;
+  display: block;
+}
