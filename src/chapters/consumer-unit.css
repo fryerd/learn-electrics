@@ -1512,3 +1512,15 @@ body.cu-dragging * {
   cursor: grabbing;
   box-shadow: 0 16px 34px rgba(29, 35, 43, 0.3);
 }
+
+#cu-scene-board > .cu-editor {
+  cursor: grab;
+  touch-action: none;
+}
+#cu-scene-board > .cu-editor button {
+  cursor: pointer;
+}
+#cu-scene-board > .cu-editor.is-dragging {
+  cursor: grabbing;
+  box-shadow: 0 16px 34px rgba(29, 35, 43, 0.3);
+}

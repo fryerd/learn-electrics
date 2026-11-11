@@ -527,6 +527,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
       const sp = spec(c);
       const prots: Protection[] = ['none', 'AC', 'A', 'F', 'B'];
       editor.innerHTML = `
+        <button type="button" class="cu-pop-x" id="cu-ed-x" aria-label="Close without changing anything">×</button>
         <div class="cu-ed-head"><span class="cu-ed-way">Way ${selWay + 1}</span><b>${sp.name}</b><small>${sp.detail}</small></div>
         <div class="wire-label">Breaker size (type B)</div>
         <div class="cu-rates" role="group" aria-label="Breaker size">${BUILD_RATINGS.map((r) => `<button type="button" class="ghost" data-brate="${r}" aria-pressed="${s.rating === r}">${r} A</button>`).join('')}</div>
@@ -554,10 +555,37 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
   };
 
   // The breaker chooser floats just under the way being set, so the ways stay in view.
+  let editorWay: number | null = null;
+  let editorMoved = false;
+  editor.addEventListener('pointerdown', (e) => {
+    if ((e.target as HTMLElement).closest('button')) return;
+    e.preventDefault();
+    editor.setPointerCapture(e.pointerId);
+    const dx = e.clientX - editor.offsetLeft;
+    const dy = e.clientY - editor.offsetTop;
+    editor.classList.add('is-dragging');
+    const move = (m: PointerEvent) => {
+      editorMoved = true;
+      editor.style.left = `${Math.max(0, Math.min(sceneEl.clientWidth - editor.offsetWidth, m.clientX - dx))}px`;
+      editor.style.top = `${Math.max(0, Math.min(sceneEl.clientHeight - editor.offsetHeight, m.clientY - dy))}px`;
+    };
+    const up = () => {
+      editor.classList.remove('is-dragging');
+      editor.removeEventListener('pointermove', move);
+      editor.removeEventListener('pointerup', up);
+      editor.removeEventListener('pointercancel', up);
+    };
+    editor.addEventListener('pointermove', move);
+    editor.addEventListener('pointerup', up);
+    editor.addEventListener('pointercancel', up);
+  });
   function placeEditor() {
     const way = selWay !== null && ways[selWay] ? board.querySelector(`[data-way="${selWay}"]`) : null;
     editor.hidden = !way || tab !== 'build';
     if (editor.hidden || !way) return;
+    if (editorWay === selWay && editorMoved) return; // the learner has put it where they want it
+    editorWay = selWay;
+    editorMoved = false;
     const sr = sceneEl.getBoundingClientRect();
     const wr = way.getBoundingClientRect();
     const w = editor.offsetWidth;
@@ -622,7 +650,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
     const p = t.closest<HTMLElement>('[data-bprot]');
     if (r) settings[c].rating = Number(r.dataset.brate);
     else if (p) settings[c].prot = p.dataset.bprot as Protection;
-    else if (t.closest('#cu-lock')) {
+    else if (t.closest('#cu-lock') || t.closest('#cu-ed-x')) {
       selWay = null; // done with this way: close the chooser, keep the settings
       renderBuild();
       return;
