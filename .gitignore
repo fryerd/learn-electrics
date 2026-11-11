@@ -11,3 +11,6 @@ private/
 video/
 Electrical Beginners Guide.pdf
 Electrical_basics_duo_layout.html
+
+# Agent worktrees (temporary working copies)
+.claude/worktrees/
