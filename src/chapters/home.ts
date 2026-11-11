@@ -15,12 +15,12 @@ export function mountHome() {
   let timer = 0;
   let touched = false;
 
-  // Click the faceplate to open it; click the back box to close it up again.
+  // Click the faceplate to open it; click the box or cable to close it up again.
   scene.onPartClick = (part) => {
     touched = true;
     const { fit } = scene.getWiring();
     if (fit === 'fitted' && (part === 'faceplate' || part === 'screws')) scene.setFitted(false);
-    else if (fit === 'off' && (part === 'backbox' || part === 'knockout')) {
+    else if (fit === 'off' && part !== 'faceplate' && part !== 'screws') {
       scene.wireCorrectly(); // any loose or swapped cores go home first
       scene.setFitted(true);
     }

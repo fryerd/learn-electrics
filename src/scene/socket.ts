@@ -466,7 +466,11 @@ export class SocketScene {
     const kindOf = (h: THREE.Intersection) => h.object.userData.kind as 'conductor' | 'terminal' | undefined;
     // With a core in hand, a terminal under the cursor wins over any core near it.
     const terminal = this.activeConductor ? hits.find((h) => kindOf(h) === 'terminal') : undefined;
-    const conductor = hits.find((h) => kindOf(h) === 'conductor');
+    // A core hidden behind the faceplate or box (invisible to the learner) must not steal the click.
+    const firstPart = hits.find((h) => h.object.userData.part);
+    const conductor = hits.find(
+      (h) => kindOf(h) === 'conductor' && (!firstPart || h.distance < firstPart.distance + 0.3),
+    );
     if (terminal) this.assignToTerminal(terminal.object.userData.wire as WireId);
     else if (conductor) this.selectConductor(conductor.object.userData.wire as WireId);
     else if (this.activeConductor) this.selectConductor(this.activeConductor); // click away = put down
