@@ -1176,15 +1176,6 @@
   height: 14px;
   border-radius: 4px;
 }
-.nw-card-nav {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 4px;
-}
-.nw-card-nav button {
-  padding: 6px 14px;
-}
 .nw-switch {
   margin-top: 14px;
   display: flex;

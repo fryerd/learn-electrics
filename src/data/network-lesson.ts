@@ -5,7 +5,7 @@ import type { QuizQuestion } from './socket-lesson';
 export const network = {
   title: 'Power station to plug',
   intro:
-    'Your electricity has made a long trip before it reaches the socket. Follow the glowing pulse from the power station, along the grid and down your street, into your consumer unit. Watch the voltage step down as it goes.',
+    'Follow the guide on the map, or click any stage. The card below gives the detail for the stage you are on.',
 };
 
 export type Owner = 'gen' | 'tx' | 'dno' | 'supplier' | 'you';
