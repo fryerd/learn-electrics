@@ -21,6 +21,16 @@
   top: 46px;
   height: calc(100% - 54px);
 }
+/* While the stage guide floats top-right (wide screens only: on phones it is docked below the stage),
+   move the toolbar to the left and drop the board a little so the card does not cover the breakers. */
+.cu-stage:has(~ .gd:not([hidden])) #cu-tb-explore {
+  left: 14px;
+  transform: none;
+}
+.cu-stage:has(~ .gd:not([hidden])) #cu-board {
+  top: 128px;
+  height: calc(100% - 136px);
+}
 
 /* ---------------------------------------------------------------- toolbar */
 .cu-toolbar {

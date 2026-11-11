@@ -1003,9 +1003,9 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
     stage,
     [
       {
-        title: 'Where the circuits split',
-        text: 'The supply comes from the meter into the consumer unit (the "fuse box"). Here it is split into separate circuits, and each one gets its own protection, so a fault on one need not take out the rest.',
-        tryIt: 'Tap any switch on the board and read what happens in the panel on the right.',
+        title: 'The fuse box',
+        text: 'The supply from the meter comes into the consumer unit and is split into separate circuits. Each circuit gets its own protection, so a fault on one need not take out the rest.',
+        tryIt: 'Tap any switch on the board and read what it did in the panel.',
         onEnter: () => {
           toExplore(true);
           pulse(board.querySelector('.cu-dev-main'));
@@ -1013,9 +1013,9 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
       },
       {
         kicker: 'Main switch',
-        title: 'One switch for the whole house',
-        text: 'The main switch on the left cuts every circuit at once. It is how you isolate the board. The thick meter tails feeding it stay live, though: only the supplier can switch those off.',
-        tryIt: 'Flick the main switch off and watch every circuit go dark. Press "All on" to bring them back.',
+        title: 'Everything off at once',
+        text: 'The main switch cuts every circuit together, so you can isolate the board. The meter tails feeding it stay live: only the supplier can switch those off.',
+        tryIt: 'Switch the main switch off. "All on" brings everything back.',
         onEnter: () => {
           toExplore(true);
           pulse(lever('main'));
@@ -1024,8 +1024,8 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
       {
         kicker: 'Inside',
         title: 'Take the cover off',
-        text: 'Behind the cover, a copper busbar carries line to every breaker. Neutrals go to their own bar and earths to the earth bar. Only a competent person should ever take a real cover off.',
-        tryIt: 'Tap the copper bar along the top of the breakers to see what it does.',
+        text: 'Behind the cover, a copper busbar carries line to every breaker. Neutrals and earths have their own bars. Only a competent person should open a real one.',
+        tryIt: 'Tap the copper bar above the breakers to see what it does.',
         onEnter: () => {
           toExplore(false);
           pulse(board.querySelector('[data-part="busbar"]'));
@@ -1033,8 +1033,8 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
       },
       {
         kicker: 'MCB',
-        title: 'A breaker protects its cable',
-        text: 'Each circuit has a miniature circuit breaker (MCB) sized for its cable. It trips slowly on an overload and almost instantly on a short circuit. Switching one off kills just that circuit.',
+        title: 'Breakers guard cables',
+        text: 'Each circuit has a miniature circuit breaker (MCB) sized to protect its cable. It trips slowly on an overload and almost instantly on a short circuit.',
         tryIt: 'Switch off the Lights MCB (B6). Only the lights go off.',
         onEnter: () => {
           toExplore(false);
@@ -1043,9 +1043,9 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
       },
       {
         kicker: 'RCD',
-        title: 'An RCD watches for leaks',
-        text: 'An RCD trips when current leaks to earth, for example through a person. Here one 30 mA RCD protects three MCBs, so when it trips they all go off together.',
-        tryIt: 'Press the T (test) button on the RCD. Which circuits go dark?',
+        title: 'An RCD spots leaks',
+        text: 'An RCD trips when current leaks to earth, for example through a person. Here one 30 mA RCD covers three circuits, so they all go off together.',
+        tryIt: 'Press the T button on the RCD. Which circuits go dark?',
         onEnter: () => {
           toExplore(false);
           pulse(tBtn('rcd1'));
@@ -1053,9 +1053,9 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
       },
       {
         kicker: 'RCBO',
-        title: 'An RCBO does both, for one circuit',
-        text: 'An RCBO is a breaker and an RCD in one, protecting a single circuit. If it trips, only that circuit loses power and the rest of the house stays on.',
-        tryIt: 'Press the T button on the Kitchen RCBO. Does anything else go off?',
+        title: 'An RCBO does both',
+        text: 'An RCBO is a breaker and an RCD in one, for a single circuit. If it trips, only that circuit loses power.',
+        tryIt: 'Press T on the Kitchen RCBO. Does anything else go off?',
         onEnter: () => {
           toExplore(false);
           pulse(tBtn('r1'));
