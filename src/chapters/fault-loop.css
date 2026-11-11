@@ -1,0 +1,691 @@
+/* --------------------------- chapter 6: the earth fault loop --------------------------- */
+.fl-stage {
+  --fl-ze: #6a4fa3;
+  --fl-r1: #8a4f22;
+  --fl-r2: #23803f;
+  --fl-if: #a8530a;
+  --fl-pulse: #ffb21e;
+  position: absolute;
+  inset: 0;
+}
+.fl-loop-scene,
+.fl-meter-scene {
+  position: absolute;
+  inset: 0;
+}
+.fl-loop-scene[hidden],
+.fl-meter-scene[hidden] {
+  display: none;
+}
+.fl-svg-host {
+  position: absolute;
+  inset: 0;
+}
+.fl-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* overlay: play button + status */
+.fl-overlay {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  right: 40%;
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+  pointer-events: none;
+}
+.fl-play {
+  pointer-events: auto;
+  border: 2px solid var(--ink);
+  background: var(--ink);
+  color: #fff;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 13px;
+  box-shadow: 0 3px 10px rgba(29, 35, 43, 0.18);
+  transition: transform 0.15s ease, opacity 0.2s ease;
+}
+.fl-play:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+.fl-play:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.fl-play:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.fl-status {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.25;
+  background: rgba(251, 250, 247, 0.94);
+  border-radius: 8px;
+  padding: 0;
+  max-width: 300px;
+}
+.fl-status:not(:empty) {
+  padding: 5px 9px;
+  box-shadow: 0 2px 8px rgba(29, 35, 43, 0.12);
+}
+[data-phase='tripped'] .fl-status {
+  color: var(--good);
+}
+[data-phase='stuck'] .fl-status {
+  color: var(--bad);
+}
+
+/* regions */
+.fl-region {
+  fill: rgba(255, 255, 255, 0.45);
+  stroke: var(--line);
+  stroke-width: 2;
+  stroke-dasharray: 6 6;
+}
+.fl-home {
+  fill: rgba(255, 255, 255, 0.7);
+  stroke-dasharray: none;
+}
+.fl-region-t {
+  font: 700 12px var(--font);
+  letter-spacing: 0.14em;
+  fill: var(--ink-soft);
+}
+
+/* resistance bands */
+.fl-band {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.32;
+  transition: stroke-width 0.25s ease;
+}
+.fl-band-ze {
+  stroke: var(--fl-ze);
+}
+.fl-band-r1 {
+  stroke: var(--fl-r1);
+}
+.fl-band-r2 {
+  stroke: var(--fl-r2);
+}
+
+/* hardware */
+.fl-cu {
+  fill: rgba(244, 243, 239, 0.9);
+  stroke: var(--ink-soft);
+  stroke-width: 2;
+}
+.fl-case {
+  fill: url(#fl-metal);
+  stroke: #7d8791;
+  stroke-width: 2.5;
+  transition: stroke 0.3s ease;
+}
+.fl-case-dial {
+  fill: #e3e7eb;
+  stroke: #9aa3ac;
+  stroke-width: 2;
+}
+.fl-wall {
+  stroke: var(--fl-pulse);
+  stroke-width: 5;
+  stroke-linecap: round;
+  opacity: 0.75;
+  transition: opacity 0.3s ease, stroke 0.3s ease;
+}
+[data-phase='tripped'] .fl-wall {
+  opacity: 0;
+}
+[data-phase='stuck'] .fl-wall {
+  stroke: var(--bad);
+}
+[data-phase='stuck'] .fl-case {
+  stroke: var(--bad);
+}
+[data-phase='tripped'] .fl-case {
+  stroke: var(--good);
+}
+.fl-term {
+  fill: #fff;
+  stroke: var(--fl-r2);
+  stroke-width: 2.5;
+}
+.fl-line,
+.fl-cpc,
+.fl-ret {
+  fill: none;
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.fl-line {
+  stroke: var(--brown);
+  transition: stroke 0.3s ease;
+}
+[data-phase='tripped'] .fl-line-r1 {
+  stroke: #b9b2a6;
+}
+.fl-cpc {
+  stroke: #2f9e4f;
+}
+.fl-cpc-y {
+  stroke: #f2c40f;
+  stroke-dasharray: 9 9;
+  stroke-linecap: butt;
+}
+.fl-ret-tns {
+  stroke: #6d747c;
+}
+.fl-ret-tncs {
+  stroke: var(--accent);
+}
+.fl-ret-tt {
+  stroke: #8a6a44;
+  stroke-dasharray: 3 9;
+}
+.fl-tx circle {
+  fill: rgba(255, 255, 255, 0.85);
+  stroke: var(--ink);
+  stroke-width: 3;
+}
+.fl-earth {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+.fl-met {
+  fill: #c99a3b;
+  stroke: #8c6a22;
+  stroke-width: 1.5;
+}
+.fl-met-t {
+  font: 700 12px var(--font);
+  letter-spacing: 0.1em;
+  fill: #2b2110;
+  text-anchor: middle;
+}
+.fl-brk rect:first-child {
+  fill: #fff;
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+.fl-lever {
+  fill: var(--ink);
+  transition: transform 0.25s cubic-bezier(0.5, 1.6, 0.6, 1);
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+[data-phase='tripped'] .fl-lever {
+  fill: var(--bad);
+  transform: translateY(6px);
+}
+.fl-brk-t {
+  font: 700 12px var(--font);
+  fill: var(--ink);
+  text-anchor: middle;
+}
+
+/* pulses + spark */
+.fl-pulses {
+  transition: opacity 0.35s ease;
+}
+.fl-pulse {
+  fill: var(--fl-pulse);
+}
+.fl-spark {
+  fill: #ffd84a;
+  stroke: #e07b00;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+.fl-fault-t {
+  font: 700 12px var(--font);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  fill: var(--fl-if);
+}
+[data-phase='tripped'] .fl-fault-t {
+  fill: var(--ink-soft);
+}
+
+/* text */
+.fl-mid {
+  text-anchor: middle;
+}
+.fl-end {
+  text-anchor: end;
+}
+.fl-small {
+  font: 600 13px var(--font);
+  fill: var(--ink-soft);
+}
+.fl-soft {
+  fill: #6b737d;
+}
+.fl-cap {
+  font: 700 12px var(--font);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  fill: var(--ink-soft);
+}
+.fl-val {
+  font-family: var(--font);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.fl-c-ze {
+  fill: var(--fl-ze);
+}
+.fl-c-r1 {
+  fill: var(--fl-r1);
+}
+.fl-c-r2 {
+  fill: var(--fl-r2);
+}
+.fl-c-if {
+  fill: var(--fl-if);
+}
+
+/* verdict pill */
+.fl-verdict-pill rect {
+  stroke-width: 2;
+  transition: fill 0.25s ease, stroke 0.25s ease;
+}
+.fl-verdict-pill.pass rect {
+  fill: var(--good-bg);
+  stroke: var(--good);
+}
+.fl-verdict-pill.warn rect {
+  fill: #fbf0d9;
+  stroke: #c9851a;
+}
+.fl-verdict-pill.fail rect {
+  fill: var(--bad-bg);
+  stroke: var(--bad);
+}
+.fl-verdict-t {
+  font: 700 18px var(--font);
+  letter-spacing: 0.12em;
+}
+.fl-verdict-s {
+  font: 600 13px var(--font);
+  fill: var(--ink-soft);
+}
+.pass .fl-verdict-t {
+  fill: #23703d;
+}
+.warn .fl-verdict-t {
+  fill: #8a5a0c;
+}
+.fail .fl-verdict-t {
+  fill: var(--bad);
+}
+
+/* stacked bar */
+.fl-bar-title {
+  font: 700 15px var(--font);
+  fill: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.fl-bar-bg {
+  fill: var(--paper-2);
+}
+.fl-bar {
+  transition: x 0.25s ease, width 0.25s ease;
+}
+.fl-f-ze {
+  fill: var(--fl-ze);
+}
+.fl-f-r1 {
+  fill: var(--fl-r1);
+}
+.fl-f-r2 {
+  fill: var(--fl-r2);
+}
+.fl-bar-t {
+  font: 700 12px var(--font);
+  fill: #fff;
+  text-anchor: middle;
+  letter-spacing: 0.08em;
+}
+.fl-tick {
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+.fl-tick-max {
+  stroke: #6b737d;
+  stroke-dasharray: 4 3;
+}
+
+/* ------------------------------ meter scene ------------------------------ */
+.fl-meter-scene {
+  container-type: size;
+  display: grid;
+  place-items: center;
+}
+.fl-meter-box {
+  position: relative;
+  width: min(94cqw, 90cqh * 480 / 460);
+  aspect-ratio: 480 / 460;
+}
+.fl-meter-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.fl-plate {
+  fill: #fff;
+  stroke: #d2cec4;
+  stroke-width: 2;
+}
+.fl-rocker {
+  fill: #f1efe9;
+  stroke: #b8b3a7;
+  stroke-width: 2;
+}
+.fl-plug {
+  fill: #2a2f36;
+}
+.fl-plug-mark {
+  fill: #4a525c;
+}
+.fl-plug-t {
+  font: 700 14px var(--font);
+  letter-spacing: 0.14em;
+  fill: #f2c40f;
+}
+.fl-lead {
+  fill: none;
+  stroke: #2a2f36;
+  stroke-width: 9;
+  stroke-linecap: round;
+}
+.fl-mbody {
+  stroke: #b78417;
+  stroke-width: 2;
+}
+.fl-bezel {
+  fill: #2a2f36;
+}
+.fl-lcd {
+  fill: #cfe0c3;
+}
+.fl-lcd-s {
+  font: 700 14px var(--font);
+  letter-spacing: 0.08em;
+  fill: #26331f;
+}
+.fl-lcd-big {
+  font: 700 46px var(--font);
+  font-variant-numeric: tabular-nums;
+  fill: #1c2717;
+}
+.fl-lcd-u {
+  font: 700 22px var(--font);
+  fill: #1c2717;
+}
+.fl-dial {
+  fill: #2a2f36;
+  stroke: #1d232b;
+  stroke-width: 3;
+}
+.fl-pointer {
+  stroke: #f2c40f;
+  stroke-width: 6;
+  stroke-linecap: round;
+}
+.fl-knob {
+  fill: #4a525c;
+}
+.fl-msmall {
+  font: 700 14px var(--font);
+  letter-spacing: 0.08em;
+  fill: #2b2110;
+}
+.fl-test-ring {
+  fill: #1d232b;
+}
+.fl-test-btn {
+  position: absolute;
+  left: calc((346 - 27) / 480 * 100%);
+  top: calc((378 - 27) / 460 * 100%);
+  width: calc(54 / 480 * 100%);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 0;
+  background: radial-gradient(circle at 40% 35%, #3fbf6a, #23803f 70%);
+  color: #fff;
+  font-weight: 700;
+  font-size: clamp(11px, 2.6cqw, 15px);
+  letter-spacing: 0.08em;
+  box-shadow: 0 4px 0 #17562b, 0 6px 12px rgba(0, 0, 0, 0.25);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+.fl-test-btn:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #17562b, 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+.fl-test-btn:disabled {
+  filter: saturate(0.4);
+  cursor: progress;
+}
+
+/* -------------------------------- panel -------------------------------- */
+.fl-tabs button {
+  padding: 12px 6px;
+}
+.fl-group {
+  margin-top: 16px;
+}
+.fl-row3,
+.fl-row2,
+.fl-cables,
+.fl-ratings {
+  display: grid;
+  gap: 6px;
+  margin-top: 6px;
+}
+.fl-row3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.fl-row2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.fl-cables,
+.fl-ratings {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.fl-opt {
+  border: 2px solid var(--line);
+  background: var(--paper);
+  border-radius: 10px;
+  padding: 6px 6px;
+  text-align: center;
+  min-height: 40px;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+.fl-opt b {
+  display: block;
+  font-size: 15px;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+.fl-opt small {
+  display: block;
+  font-size: 12px;
+  line-height: 1.2;
+  color: var(--ink-soft);
+}
+.fl-opt:hover {
+  border-color: var(--ink-soft);
+}
+.fl-opt[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(31, 95, 191, 0.25);
+}
+.fl-sum {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+.fl-sum b {
+  color: var(--ink);
+}
+.fl-readouts {
+  margin-top: 16px;
+}
+.fl-readouts .readout b,
+.fl-view-meter .readout b {
+  font-variant-numeric: tabular-nums;
+}
+.fl-verdict li {
+  font-size: 15px;
+}
+
+/* challenge card */
+.fl-chal p {
+  margin: 4px 0 8px;
+}
+.fl-chal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.fl-dots {
+  display: flex;
+  gap: 5px;
+}
+.fl-dots i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--ink-soft);
+  background: transparent;
+}
+.fl-dots i.done {
+  background: var(--good);
+  border-color: var(--good);
+}
+.fl-dots i.on {
+  box-shadow: 0 0 0 2px rgba(31, 95, 191, 0.35);
+}
+.fl-chal-title {
+  display: block;
+  margin-top: 4px;
+  font-size: 17px;
+}
+.fl-chal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.fl-chal-actions .primary,
+.fl-chal-actions .ghost {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+.fl-chal-fb {
+  min-height: 1.4em;
+  margin: 8px 0 0 !important;
+}
+.fl-chal-nav {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+.fl-chal-nav .ghost {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+/* more */
+.fl-more {
+  margin: 14px 0 12px;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 12px;
+  background: var(--paper);
+  font-size: 15px;
+}
+.fl-more summary {
+  font-weight: 700;
+  cursor: pointer;
+}
+.fl-more p {
+  margin: 8px 0 0;
+}
+
+/* meter panel */
+.fl-setup {
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: var(--paper);
+  display: grid;
+  gap: 2px;
+  justify-items: start;
+}
+.fl-setup small {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.fl-change {
+  margin-top: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+.fl-test {
+  width: 100%;
+  margin-top: 12px;
+}
+.fl-judge {
+  margin-top: 10px;
+}
+.fl-judge p {
+  margin: 0 0 6px;
+}
+.fl-gap {
+  margin-top: 14px;
+}
+.fl-steps {
+  margin: 6px 0 12px;
+  padding-left: 22px;
+}
+.fl-steps li {
+  margin-bottom: 4px;
+}
+.fl-safety {
+  border-left: 5px solid var(--bad);
+  background: var(--bad-bg);
+  padding: 8px 12px;
+  border-radius: 0 8px 8px 0;
+  font-size: 15px;
+  margin-bottom: 12px;
+}
+.fl-safety b {
+  display: block;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-size: 12px;
+  color: var(--bad);
+}
