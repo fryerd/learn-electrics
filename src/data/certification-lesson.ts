@@ -6,7 +6,7 @@ import type { Verdict } from '../chapters/certification-model';
 export const certification = {
   title: 'Prove it, then record it',
   intro:
-    'New wiring is not finished until it has been tested and the results written down. On this workshop board you do the tests yourself: dead tests first with everything switched off, then live tests with the power on.',
+    'The guide on the board walks you through each test. Use the tester here: dead tests first, power off; live tests last.',
   faultsIntro:
     'This board has some hidden faults. Run the tests, log each reading, and say what you think it shows. Readings that do not fit a healthy installation get a gentle nudge. When you are ready, reveal the answers.',
 };
