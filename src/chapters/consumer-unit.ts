@@ -19,6 +19,7 @@ import {
   type Protection,
   type RcdType,
 } from '../data/consumer-unit-lesson';
+import { mountGuide, pulse } from '../ui/guide';
 import { mountQuiz } from '../ui/quiz';
 import { applyState, boardMarkup, liveMap, type BoardDev } from './consumer-unit-board';
 import {
@@ -347,13 +348,13 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
     if (dev.kind === 'rcd' && viaTest) tick('rcdtest');
   };
 
-  const setCover = (on: boolean) => {
+  const setCover = (on: boolean, byGuide = false) => {
     cover = on;
     board.classList.toggle('cu-cover-off', !on);
     const b = $s<HTMLButtonElement>('#cu-cover-btn');
     b.textContent = on ? 'Take cover off' : 'Put cover on';
     b.setAttribute('aria-pressed', String(!on));
-    if (!on) tick('cover');
+    if (!on && !byGuide) tick('cover');
   };
   $s('#cu-cover-btn').addEventListener('click', () => setCover(!cover));
   $s('#cu-reset-btn').addEventListener('click', () => {
@@ -955,13 +956,19 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
       if (t === 'build') renderBuildPanel();
     }
   };
-  TABS.forEach(({ id }) => $(`#cu-tab-${id}`).addEventListener('click', () => showTab(id)));
+  TABS.forEach(({ id }) =>
+    $(`#cu-tab-${id}`).addEventListener('click', () => {
+      showTab(id);
+      guide.setVisible(id === 'explore');
+    }),
+  );
   panel.querySelector('.cu-tabs')!.addEventListener('keydown', (e) => {
     const k = (e as KeyboardEvent).key;
     if (k !== 'ArrowRight' && k !== 'ArrowLeft') return;
     const i = TABS.findIndex((x) => x.id === tab);
     const n = TABS[(i + (k === 'ArrowRight' ? 1 : TABS.length - 1)) % TABS.length].id;
     showTab(n);
+    guide.setVisible(n === 'explore');
     $(`#cu-tab-${n}`).focus();
   });
 
@@ -975,6 +982,97 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
   setDial('ramp');
   setScale('ramp', null);
   setRcd(false);
+
+  /* ------------------------------------------------ the guided walkthrough */
+  // Each step puts the Explore board back to a known state, then rings the thing to touch.
+  const toExplore = (coverOn: boolean) => {
+    if (tab !== 'explore') {
+      showTab('explore');
+      guide?.setVisible(true);
+    }
+    exOn = allOn(EXPLORE);
+    setCover(coverOn, true);
+    selPart = null;
+    renderBoard();
+    say.classList.remove('is-on');
+    say.textContent = '';
+  };
+  const lever = (id: string) => board.querySelector(`[data-lever="${id}"]`);
+  const tBtn = (id: string) => board.querySelector(`[data-test="${id}"]`);
+  const guide = mountGuide(
+    stage,
+    [
+      {
+        title: 'The fuse box',
+        text: 'The supply from the meter comes into the consumer unit and is split into separate circuits. Each circuit gets its own protection, so a fault on one need not take out the rest.',
+        tryIt: 'Tap any switch on the board and read what it did in the panel.',
+        onEnter: () => {
+          toExplore(true);
+          pulse(board.querySelector('.cu-dev-main'));
+        },
+      },
+      {
+        kicker: 'Main switch',
+        title: 'Everything off at once',
+        text: 'The main switch cuts every circuit together, so you can isolate the board. The meter tails feeding it stay live: only the supplier can switch those off.',
+        tryIt: 'Switch the main switch off. "All on" brings everything back.',
+        onEnter: () => {
+          toExplore(true);
+          pulse(lever('main'));
+        },
+      },
+      {
+        kicker: 'Inside',
+        title: 'Take the cover off',
+        text: 'Behind the cover, a copper busbar carries line to every breaker. Neutrals and earths have their own bars. Only a competent person should open a real one.',
+        tryIt: 'Tap the copper bar above the breakers to see what it does.',
+        onEnter: () => {
+          toExplore(false);
+          pulse(board.querySelector('[data-part="busbar"]'));
+        },
+      },
+      {
+        kicker: 'MCB',
+        title: 'Breakers guard cables',
+        text: 'Each circuit has a miniature circuit breaker (MCB) sized to protect its cable. It trips slowly on an overload and almost instantly on a short circuit.',
+        tryIt: 'Switch off the Lights MCB (B6). Only the lights go off.',
+        onEnter: () => {
+          toExplore(false);
+          pulse(lever('m3'));
+        },
+      },
+      {
+        kicker: 'RCD',
+        title: 'An RCD spots leaks',
+        text: 'An RCD trips when current leaks to earth, for example through a person. Here one 30 mA RCD covers three circuits, so they all go off together.',
+        tryIt: 'Press the T button on the RCD. Which circuits go dark?',
+        onEnter: () => {
+          toExplore(false);
+          pulse(tBtn('rcd1'));
+        },
+      },
+      {
+        kicker: 'RCBO',
+        title: 'An RCBO does both',
+        text: 'An RCBO is a breaker and an RCD in one, for a single circuit. If it trips, only that circuit loses power.',
+        tryIt: 'Press T on the Kitchen RCBO. Does anything else go off?',
+        onEnter: () => {
+          toExplore(false);
+          pulse(tBtn('r1'));
+        },
+      },
+      {
+        title: 'Now it is your turn',
+        text: 'Build a board of your own, see how fast a breaker trips on the Curves tab, and test an RCD. Then take the quiz to tick this chapter off.',
+        tryIt: 'Open the Build tab when you are ready.',
+        onEnter: () => {
+          toExplore(false);
+          pulse($('#cu-tab-build'));
+        },
+      },
+    ],
+    { position: 'top-right' },
+  );
 
   return {
     activate() {
