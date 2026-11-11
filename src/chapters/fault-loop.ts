@@ -646,13 +646,20 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
     update();
   };
   const cardOf = (e: Element) => e.closest('.slider-card') ?? e;
+  const wide = matchMedia('(min-width: 881px)');
+  /** Ring a control; on wide screens also scroll the side panel so it is in view. */
+  const point = (e: Element | null | undefined) => {
+    if (!e) return;
+    if (wide.matches) e.scrollIntoView({ block: 'nearest', behavior: reduced ? 'auto' : 'smooth' });
+    pulse(e);
+  };
 
   mountGuide(
     stage,
     [
       {
         title: 'When metal goes live',
-        text: 'If the line wire touches a metal case, current rushes through the case, back along the earth wire (the CPC) and home to the transformer. That round trip is the earth fault loop.',
+        text: 'If the line wire touches a metal case, current rushes through the case, back along the earth wire (CPC) and home to the transformer. That round trip is the earth fault loop.',
         tryIt: 'Follow the glowing dots from the transformer, through the spark and back along the bottom.',
         onEnter: () => load(),
       },
@@ -663,13 +670,13 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
         tryIt: 'Drag the Run length slider and watch R1, R2 and the bar grow.',
         onEnter: () => {
           load();
-          pulse(cardOf(lenIn));
+          point(cardOf(lenIn));
         },
       },
       {
         kicker: 'Amps (A)',
-        title: 'Low Zs, big current, fast trip',
-        text: 'The fault current is 230 V ÷ Zs. A type B breaker trips instantly at about 5 times its rating, so a healthy loop lets hundreds of amps flow and it trips in a flash.',
+        title: 'Low Zs, fast trip',
+        text: 'Fault current = 230 V ÷ Zs. A type B breaker trips instantly at about 5 times its rating, so a healthy loop trips it in a flash.',
         tryIt: 'Press “Play the fault” and watch the breaker trip in slow motion.',
         onEnter: () => {
           load();
@@ -683,7 +690,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
         tryIt: 'Play the fault, then pick thicker cables until the verdict says PASS.',
         onEnter: () => {
           load({ length: 55 });
-          pulse(panel.querySelector('.fl-cables'));
+          point(panel.querySelector('.fl-cables'));
         },
       },
       {
@@ -693,7 +700,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
         tryIt: 'Switch to Type B, then try lower ratings and watch the 80% limit on the bar move.',
         onEnter: () => {
           load({ ze: 0.8, length: 20, type: 'C' });
-          pulse(panel.querySelector('[data-type]')?.parentElement);
+          point(panel.querySelector('[data-type]')?.parentElement);
         },
       },
       {
@@ -703,7 +710,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
         tryIt: 'Try any breaker: none pass. Then press TN-C-S to compare.',
         onEnter: () => {
           load({ ze: 21, length: 20, rating: 6 });
-          pulse(panel.querySelector('[data-supply]')?.parentElement);
+          point(panel.querySelector('[data-supply]')?.parentElement);
         },
       },
       {
