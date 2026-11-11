@@ -16,6 +16,7 @@ import {
   type MethodId,
   type Size,
 } from '../data/cables-lesson';
+import { mountGuide, pulse } from '../ui/guide';
 import { mountQuiz } from '../ui/quiz';
 import {
   AMBIENT,
@@ -52,6 +53,14 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
   let current = designCurrent(appliance(design.applianceId).watts);
   let tries = 0;
   const done = new Set<ChallengeId>();
+  /** True while the design is one the stage guide set up, so the challenges are not ticked for the learner. */
+  let guided = false;
+  // Any real input from the learner ends that.
+  panel.addEventListener('pointerdown', () => (guided = false), true);
+  panel.addEventListener('keydown', () => (guided = false), true);
+  stage.addEventListener('pointerdown', (e) => {
+    if (!(e.target as Element).closest('.gd')) guided = false;
+  }, true);
 
   /* ------------------------------ the stage ------------------------------ */
   stage.innerHTML = `
@@ -290,7 +299,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
   };
 
   const markChallenge = (id: ChallengeId) => {
-    if (done.has(id)) return;
+    if (guided || done.has(id)) return;
     done.add(id);
     q('cb-challenges').querySelector(`[data-ch="${id}"]`)?.classList.add('ok');
   };
@@ -402,6 +411,87 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
   };
 
   refresh();
+
+  /* ------------------------------ stage guide ------------------------------ */
+  const showTab = (k: Tab) => q(`cb-tab-${k}`).click();
+  /** Set part of the design without counting it as the learner's own try, and go back to normal load. */
+  const setDesign = (d: Partial<Design>) => {
+    guided = true;
+    Object.assign(design, d);
+    showTab('design');
+    onDesignChange(false);
+  };
+  const chipsOf = (name: string) => panel.querySelector(`[data-${name}]`)?.closest('.cb-seg');
+  mountGuide(
+    stage,
+    [
+      {
+        kicker: 'Ib ≤ In ≤ Iz',
+        title: 'Three numbers, one deal',
+        text: 'Every circuit balances three currents: what the load needs (Ib), what the breaker allows (In) and what the cable can carry (Iz). The breaker sits in the middle.',
+        tryIt: 'Find the Ib ≤ In ≤ Iz strip at the top of the panel. Here an 8.5 kW shower is happy on 6 mm² cable.',
+        onEnter: () => {
+          setDesign({ applianceId: 'sh85', breaker: 40, size: 6, method: 'C', group: 1, length: 20 });
+          pulse(q('cb-r-ib').closest('.cb-rule'));
+        },
+      },
+      {
+        kicker: 'Ib · the load',
+        title: 'Start with what the appliance needs',
+        text: 'The design current is the power divided by the voltage: Ib = P ÷ 230. A bigger shower draws more current, so everything after it has to be bigger too.',
+        tryIt: 'Pick the 10.5 kW shower and watch Ib and the checks change.',
+        onEnter: () => pulse(chipsOf('app')),
+      },
+      {
+        kicker: 'In · the breaker',
+        title: 'The breaker must cover the load',
+        text: 'The breaker rating must be at least the design current, or it would trip every time the appliance runs. The 8.5 kW shower needs about 37 A.',
+        tryIt: 'Choose a 32 A breaker and read the warning at the top of the picture. Then go back to 40 A.',
+        onEnter: () => {
+          setDesign({ applianceId: 'sh85', breaker: 40, size: 6, method: 'C', group: 1 });
+          pulse(chipsOf('brk'));
+        },
+      },
+      {
+        kicker: 'Iz · the cable',
+        title: 'Where a cable runs changes what it can carry',
+        text: 'Current heats a cable. Clipped to a wall, the heat escapes; buried in insulation or bunched with other cables, it cannot, so the same cable carries less.',
+        tryIt: 'Switch from “Clipped direct” to “In insulation” and watch Iz fall below the breaker.',
+        onEnter: () => {
+          setDesign({ applianceId: 'sh85', breaker: 40, size: 6, method: 'C', group: 1 });
+          pulse(chipsOf('method'));
+        },
+      },
+      {
+        kicker: 'Why In ≤ Iz',
+        title: 'The breaker protects the cable',
+        text: 'Here a 63 A breaker feeds 4 mm² cable that can only take about 36 A, and the load is pushed to 1.5 times normal. The breaker lets it all through, so the cable heats up instead.',
+        tryIt: 'Watch the cable temperature climb. Then fix it: pick a 40 A breaker and 6 mm² cable.',
+        onEnter: () => {
+          setDesign({ applianceId: 'sh85', breaker: 63, size: 4, method: 'C', group: 1 });
+          q('cb-over').click();
+          pulse(chipsOf('brk'));
+        },
+      },
+      {
+        kicker: 'Volt drop',
+        title: 'Long runs lose voltage',
+        text: 'Every metre of cable eats a little voltage. Lighting is only allowed to lose about 3% (6.9 V), so a long run on thin cable can fail even when it is cool.',
+        tryIt: 'Drag the Cable length slider up until the volt drop check turns red.',
+        onEnter: () => {
+          setDesign({ applianceId: 'light', breaker: 6, size: 1.5, method: 'C', group: 1, length: 20 });
+          pulse(lenIn.closest('.slider-card'));
+        },
+      },
+      {
+        title: 'Now design your own',
+        text: 'Work through the three challenges in the panel, try the stress test and the calculators, then take the quiz to tick this chapter off.',
+        tryIt: 'Open the Quiz tab when you are ready.',
+        onEnter: () => pulse(q('cb-tab-quiz')),
+      },
+    ],
+    { position: 'top-right' },
+  );
 
   /* ----------------------------- calculators ----------------------------- */
   const cc = {

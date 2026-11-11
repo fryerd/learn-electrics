@@ -9,7 +9,7 @@ export const NOMINAL_V = 230;
 export const cables = {
   title: 'The cable is king',
   intro:
-    'Every circuit is a deal between three numbers. The load needs some current, the breaker decides how much is allowed, and the cable has to carry it without getting too hot. Pick an appliance, then choose a breaker and a cable that keep everyone happy.',
+    'Pick a load, then a breaker and a cable that keep all three checks green. The guide on the picture walks you through it.',
 };
 
 export type MethodId = 'A' | 'B' | 'C';
