@@ -19,6 +19,10 @@ export interface FanScene {
   activate(): void;
   deactivate(): void;
   resize(): void;
+  /** Light off, isolator on, fan stopped. */
+  reset(): void;
+  lightBtn: HTMLElement;
+  isoBtn: HTMLElement;
 }
 
 export function mountFan(stage: HTMLElement, view: HTMLElement): FanScene {
@@ -116,7 +120,7 @@ export function mountFan(stage: HTMLElement, view: HTMLElement): FanScene {
 
   view.innerHTML = `
     <div class="detail"><h2>The extractor fan</h2>
-      <p>A bathroom fan starts with the light and keeps running for a while after, to clear the steam. That takes two lines: a <b>switched line</b> from the light switch, and a <b>permanent line</b> for the timer. Try the controls, then tap the parts.</p></div>
+      <p>A <b>switched line</b> starts the fan with the light; a <b>permanent line</b> keeps its timer running. Try the controls, then tap the parts.</p></div>
     <div class="sl-fan-controls">
       <button type="button" class="primary" id="sl-btn-light" aria-pressed="false">Pull the light cord</button>
       <button type="button" class="ghost" id="sl-btn-iso" aria-pressed="true">Isolator: on</button>
@@ -297,5 +301,14 @@ export function mountFan(stage: HTMLElement, view: HTMLElement): FanScene {
       stopLoop();
     },
     resize,
+    reset() {
+      lightOn = false;
+      isoOn = true;
+      runOn = 0;
+      render();
+      ensureLoop();
+    },
+    lightBtn: vq<HTMLElement>('#sl-btn-light'),
+    isoBtn: vq<HTMLElement>('#sl-btn-iso'),
   };
 }

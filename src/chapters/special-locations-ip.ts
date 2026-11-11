@@ -71,6 +71,12 @@ const art = (inner: string) => `<svg viewBox="0 0 120 100" class="sl-ip-art" ari
 
 export interface IpScene {
   setVisible(v: boolean): void;
+  /** Show a code such as "IPX4" in the decoder. */
+  setCode(text: string): void;
+  /** The big code on the stage. */
+  codeEl: HTMLElement;
+  /** A digit picker row in the side panel. */
+  row(part: 'first' | 'second' | 'letter'): HTMLElement | null;
 }
 
 export function mountIp(stage: HTMLElement, view: HTMLElement): IpScene {
@@ -103,7 +109,7 @@ export function mountIp(stage: HTMLElement, view: HTMLElement): IpScene {
 
   view.innerHTML = `
     <div class="detail"><h2>Decode an IP rating</h2>
-      <p>An IP code says how well an enclosure keeps things out. The first digit is solid objects and dust, the second is water, and an optional letter says what a person cannot poke in. X means “not rated” for that part. Pick the parts and watch the picture.</p></div>
+      <p>Pick the parts and watch the picture. X means “not rated” for that part; the optional letter says what a person cannot poke in.</p></div>
     ${seg('first', 'First digit: solids', ['X', '0', '1', '2', '3', '4', '5', '6'])}
     ${seg('second', 'Second digit: water', ['X', '0', '1', '2', '3', '4', '5', '6', '7', '8'])}
     ${seg('letter', 'Letter (optional)', ['', 'A', 'B', 'C', 'D'], (v) => v || 'None')}
@@ -239,5 +245,13 @@ export function mountIp(stage: HTMLElement, view: HTMLElement): IpScene {
     setVisible(v) {
       root.hidden = !v;
     },
+    setCode(text) {
+      const c = parseIp(text);
+      if (!c) return;
+      code = c;
+      render();
+    },
+    codeEl: q<HTMLElement>('.sl-ip-code'),
+    row: (part) => view.querySelector<HTMLElement>(`[data-${part}]`)?.closest<HTMLElement>('.sl-seg-row') ?? null,
   };
 }

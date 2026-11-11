@@ -59,6 +59,12 @@ interface Placed {
 export interface BathroomScene {
   resize(): void;
   setVisible(v: boolean): void;
+  /** Switch between the wall view and the view from above (both show at once on tall stages). */
+  showView(m: 'wall' | 'plan'): void;
+  /** Light up some zones on the wall for a moment. */
+  flashZones(zones: Zone[]): void;
+  /** The tray of items in the side panel. */
+  tray: HTMLElement;
 }
 
 export function mountBathroom(stage: HTMLElement, view: HTMLElement): BathroomScene {
@@ -497,6 +503,13 @@ export function mountBathroom(stage: HTMLElement, view: HTMLElement): BathroomSc
     render();
   };
 
+  let flashTimer = 0;
+  const flashZones = (zones: Zone[]) => {
+    clearTimeout(flashTimer);
+    (Object.keys(zoneEls) as Zone[]).forEach((k) => zoneEls[k].classList.toggle('is-hot', zones.includes(k)));
+    flashTimer = window.setTimeout(() => highlight(null), 2600);
+  };
+
   render();
   return {
     resize,
@@ -504,6 +517,11 @@ export function mountBathroom(stage: HTMLElement, view: HTMLElement): BathroomSc
       root.hidden = !v;
       if (v) resize();
     },
+    showView: (m) => {
+      if (!portrait) setMode(m);
+    },
+    flashZones,
+    tray: q<HTMLElement>('.sl-tray'),
   };
 }
 

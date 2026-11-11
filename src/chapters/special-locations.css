@@ -1227,3 +1227,17 @@ rect.sl-ip-obj + .sl-ip-shaft {
     font-size: 14px;
   }
 }
+
+/* Stage guide: bottom-right, but top-right over the fan. While it floats over the IP decoder,
+   the decoder moves to the top of the stage so the card sits in the empty space below it. */
+.sl-stage.sl-guide-top > .gd:not(.gd-docked) {
+  top: 14px;
+  bottom: auto;
+}
+.sl-stage:has(> .gd:not([hidden]) > .gd-card:not([hidden])) .sl-ip {
+  align-items: flex-start;
+  padding-top: 8px;
+}
+.sl-stage:has(> .gd:not([hidden]) > .gd-card:not([hidden])) .sl-ip-wrap {
+  gap: 6px;
+}
