@@ -1323,3 +1323,183 @@ body.cu-dragging * {
     filter: drop-shadow(0 0 4px rgba(31, 95, 191, 0.95));
   }
 }
+
+/* ---------------------------------------------- stage popover for a part */
+#cu-pop {
+  position: absolute;
+  z-index: 4;
+  width: 310px;
+  max-width: calc(100% - 20px);
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 10px 14px 12px;
+  background: rgba(255, 255, 255, 0.97);
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 10px 26px rgba(29, 35, 43, 0.2);
+  font-size: 14.5px;
+  line-height: 1.35;
+}
+#cu-pop[hidden] {
+  display: none;
+}
+#cu-pop h2 {
+  margin: 0 28px 4px 0;
+  font-size: 18px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+#cu-pop p {
+  margin: 0 0 6px;
+}
+#cu-pop ul {
+  margin: 0 0 6px;
+  padding-left: 18px;
+}
+#cu-pop .uk {
+  font-size: 13.5px;
+}
+#cu-pop.cu-pop-in {
+  animation: cu-tip-in 0.22s ease-out;
+}
+@keyframes cu-tip-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.cu-pop-x {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  width: 26px;
+  height: 26px;
+  border: 2px solid var(--line);
+  background: var(--paper);
+  border-radius: 50%;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0;
+}
+
+/* The side panel no longer needs the part text or the "what happened" line: both pop up on the stage. */
+#cu-view-explore .cu-info,
+#cu-view-explore .cu-say {
+  display: none;
+}
+
+/* ---------------------------------------------- lights out */
+.cu-stage::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 45% 40%, #2b333d 0%, #151a21 60%, #0d1116 100%);
+  opacity: 0;
+  transition: opacity 0.7s ease;
+  pointer-events: none;
+}
+.cu-stage.cu-dark::before {
+  opacity: 1;
+}
+.cu-dark .cu-tl,
+.cu-dark .cu-cl {
+  fill: #c3ccd6;
+}
+
+/* ---------------------------------------------- building, on the stage */
+.cu-buildui {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+.cu-buildui[hidden] {
+  display: none;
+}
+.cu-buildui > * {
+  pointer-events: auto;
+}
+.cu-tray {
+  padding: 8px 12px 10px;
+  background: rgba(251, 250, 247, 0.96);
+  border-top: 2px solid var(--line);
+}
+.cu-bstatus {
+  margin: 0 0 6px;
+  padding: 5px 10px;
+  font-size: 14px;
+}
+.cu-tray .cu-cards {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+}
+.cu-tray .cu-card {
+  padding: 5px 8px;
+}
+.cu-tray .cu-card b {
+  font-size: 13.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cu-tray .cu-card-way {
+  margin-top: 1px;
+  font-size: 11px;
+}
+.cu-tray .cu-quick {
+  margin-top: 6px;
+}
+#cu-scene-board > .cu-editor {
+  position: absolute;
+  z-index: 6;
+  width: 372px;
+  max-width: calc(100% - 20px);
+  margin: 0;
+  box-sizing: border-box;
+  padding: 8px 12px 10px;
+  background: rgba(255, 255, 255, 0.97);
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 10px 26px rgba(29, 35, 43, 0.2);
+  font-size: 13.5px;
+}
+#cu-scene-board > .cu-editor[hidden] {
+  display: none;
+}
+#cu-scene-board > .cu-editor .wire-label {
+  margin: 6px 0 3px;
+  font-size: 12px;
+}
+#cu-scene-board > .cu-editor .ghost {
+  padding: 3px 8px;
+  font-size: 13px;
+  min-width: 0;
+}
+#cu-scene-board > .cu-editor .cu-ed-head small {
+  display: none;
+}
+#cu-scene-board > .cu-editor .cu-fb {
+  margin: 6px 0 0;
+  font-size: 13px;
+}
+#cu-scene-board > .cu-editor .wire-actions {
+  margin-top: 6px;
+}
+/* The board shrinks to make room for the tray */
+.cu-scene.is-building #cu-board {
+  height: calc(100% - 54px - 128px);
+}
+.cu-stage:has(~ .gd:not([hidden])) .cu-scene.is-building #cu-board {
+  height: calc(100% - 136px - 128px);
+  top: 128px;
+}
+.cu-stage:has(~ .gd:not([hidden])) #cu-tb-build {
+  left: 14px;
+  transform: none;
+}
+.cu-scene.is-building .cu-toast {
+  bottom: 148px;
+}

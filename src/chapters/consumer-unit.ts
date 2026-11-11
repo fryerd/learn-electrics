@@ -98,6 +98,19 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
           <button type="button" id="cu-clear-btn">Clear</button>
         </div>
         <div class="cu-toast" id="cu-toast" aria-live="polite"></div>
+        <div class="cu-pop" id="cu-pop" role="dialog" aria-label="About this part" hidden></div>
+        <div class="cu-editor" id="cu-editor" hidden></div>
+        <div class="cu-buildui" id="cu-buildui" hidden>
+          <div class="cu-tray">
+            <div class="challenge cu-bstatus" id="cu-build-status" aria-live="polite"></div>
+            <div class="cu-cards" id="cu-cards">${circuits
+              .map(
+                (c) => `<button type="button" class="cu-card" data-card="${c.id}" aria-pressed="false" title="${c.detail}"><b>${c.name}</b><i class="cu-card-way" aria-hidden="true"></i></button>`,
+              )
+              .join('')}</div>
+            <div class="cu-quick" id="cu-quick" hidden></div>
+          </div>
+        </div>
       </div>
       <div class="cu-scene" id="cu-scene-curve" hidden>
         <svg class="cu-svg" id="cu-chart" viewBox="0 0 660 500" role="img" aria-label="Time-current chart for the chosen breaker."></svg>
@@ -127,16 +140,8 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
     </section>
 
     <section role="tabpanel" id="cu-view-build" aria-labelledby="cu-tab-build" hidden>
-      <div class="detail"><h2>${buildIntro.title}</h2><p>${buildIntro.text}</p></div>
-      <div class="challenge" id="cu-build-status" aria-live="polite"></div>
-      <div class="wire-label">Circuits</div>
-      <div class="cu-cards" id="cu-cards">${circuits
-        .map(
-          (c) => `<button type="button" class="cu-card" data-card="${c.id}" aria-pressed="false"><b>${c.name}</b><small>${c.detail}</small><i class="cu-card-way" aria-hidden="true"></i></button>`,
-        )
-        .join('')}</div>
-      <div class="cu-quick" id="cu-quick" hidden></div>
-      <div class="cu-editor" id="cu-editor"></div>
+      <div class="detail"><h2>${buildIntro.title}</h2><p>You build the board right on the picture: drag circuits onto the ways, choose each breaker, then power it up. The guide on the board takes you through it.</p></div>
+      <div class="wire-actions"><button type="button" class="primary" id="cu-go-build">Back to the build steps</button></div>
       <div class="uk"><b>UK standards</b>A breaker is chosen to protect the circuit’s cable: at least the load current, and no more than the cable can safely carry. You will size cables properly in the next chapter.</div>
     </section>
 
@@ -252,9 +257,18 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
     board.classList.toggle('cu-cover-off', tab === 'build' || !cover);
     board.classList.toggle('cu-building', tab === 'build');
     applyState(board, devs, onNow());
+    syncDark();
     markSelection();
   };
-  const refreshState = () => applyState(board, devsNow(), onNow());
+  // Main switch off = the lights go out: the stage background goes dark.
+  const syncDark = () => {
+    const dark = tab === 'explore' ? !exOn.main : tab === 'build' ? powered && buildOn.main === false : false;
+    $s('.cu-stage').classList.toggle('cu-dark', dark);
+  };
+  const refreshState = () => {
+    applyState(board, devsNow(), onNow());
+    syncDark();
+  };
 
   const markSelection = () => {
     board.querySelectorAll('.cu-sel').forEach((e) => e.classList.remove('cu-sel'));
@@ -269,24 +283,51 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
   };
 
   let toastTimer = 0;
-  const showToast = (msg: string) => {
+  const showToast = (msg: string, ms = 3200) => {
     toast.textContent = msg;
     toast.classList.add('is-on');
     clearTimeout(toastTimer);
-    toastTimer = window.setTimeout(() => toast.classList.remove('is-on'), 3200);
+    toastTimer = window.setTimeout(() => toast.classList.remove('is-on'), ms);
+  };
+
+  // A part's explanation pops up beside the part on the stage, instead of sitting in the side panel.
+  const pop = $s<HTMLElement>('#cu-pop');
+  const sceneEl = $s<HTMLElement>('#cu-scene-board');
+  const hidePop = () => {
+    pop.hidden = true;
+  };
+  const placePop = (anchor: Element | null) => {
+    const sr = sceneEl.getBoundingClientRect();
+    const ar = anchor?.getBoundingClientRect();
+    pop.style.maxHeight = `${Math.max(180, sr.height - 24)}px`;
+    const w = pop.offsetWidth;
+    const h = pop.offsetHeight;
+    let x = ar ? ar.left + ar.width / 2 - sr.left - w / 2 : 14;
+    let y = ar ? (ar.bottom - sr.top + 12 + h <= sr.height - 8 ? ar.bottom - sr.top + 12 : ar.top - sr.top - 12 - h) : sr.height - h - 14;
+    x = Math.max(10, Math.min(sr.width - w - 10, x));
+    y = Math.max(10, Math.min(sr.height - h - 10, y));
+    pop.style.left = `${x}px`;
+    pop.style.top = `${y}px`;
   };
 
   /* ---------------------------------------------------------- explore tab */
   const say = $('#cu-say');
   const info = $('#cu-info');
 
-  const showPart = (id: PartId) => {
+  const partEl = (id: PartId) =>
+    board.querySelector(['main', 'rcd', 'mcb', 'rcbo'].includes(id) ? `.cu-dev[data-part="${id}"]` : `[data-part="${id}"]`);
+  const showPart = (id: PartId, anchor?: Element | null) => {
     selPart = id;
     const p = parts[id];
-    info.innerHTML = `<h2>${p.title}</h2><p>${p.text}</p><ul>${p.points.map((x) => `<li>${x}</li>`).join('')}</ul>${p.uk ? `<div class="uk"><b>UK standards</b>${p.uk}</div>` : ''}`;
-    info.classList.remove('cu-pop');
-    void info.offsetWidth;
-    info.classList.add('cu-pop');
+    const html = `<h2>${p.title}</h2><p>${p.text}</p><ul>${p.points.map((x) => `<li>${x}</li>`).join('')}</ul>${p.uk ? `<div class="uk"><b>UK standards</b>${p.uk}</div>` : ''}`;
+    info.innerHTML = html;
+    pop.innerHTML = `<button type="button" class="cu-pop-x" aria-label="Close" id="cu-pop-x">×</button>${html}`;
+    pop.hidden = false;
+    pop.classList.remove('cu-pop-in');
+    void pop.offsetWidth;
+    pop.classList.add('cu-pop-in');
+    placePop(anchor ?? partEl(id));
+    $s('#cu-pop-x').addEventListener('click', hidePop);
     panel.querySelectorAll<HTMLElement>('[data-partbtn]').forEach((b) => b.setAttribute('aria-current', String(b.dataset.partbtn === id)));
     if (id === 'busbar') tick('busbar');
     if (tab === 'explore') markSelection();
@@ -330,6 +371,8 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
     if (dead.length && !msg.includes('every circuit')) msg += ` Off now: ${dead.join(', ')}.`;
     say.textContent = msg;
     say.classList.add('is-on');
+    hidePop();
+    showToast(msg, 7000);
   };
 
   const toggleExplore = (id: string, viaTest = false) => {
@@ -338,6 +381,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
     if (viaTest && !exOn[id]) {
       say.textContent = 'It is already off. Switch it back on first, then press T.';
       say.classList.add('is-on');
+      showToast(say.textContent, 5000);
       return;
     }
     exOn = { ...exOn, [id]: nowOn };
@@ -361,6 +405,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
     exOn = allOn(EXPLORE);
     refreshState();
     say.textContent = 'Everything is back on.';
+    showToast('Everything is back on.');
   });
   panel.querySelectorAll<HTMLElement>('[data-partbtn]').forEach((b) =>
     b.addEventListener('click', () => {
@@ -394,10 +439,16 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
       return;
     }
     const part = target.closest<SVGElement>('[data-part]');
+    if (!part) hidePop();
     if (part) {
       const id = part.dataset.part as PartId;
       if (id === 'cover' && !cover) return;
-      showPart(id);
+      if (id === 'cover') {
+        setCover(false); // clicking the lid lifts it off
+        hidePop();
+        return;
+      }
+      showPart(id, part);
     }
   };
   board.addEventListener('click', (e) => {
@@ -413,10 +464,10 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
   });
 
   /* ------------------------------------------------------------ build tab */
-  const cardsEl = $('#cu-cards');
-  const quick = $('#cu-quick');
-  const editor = $('#cu-editor');
-  const status = $('#cu-build-status');
+  const cardsEl = $s<HTMLElement>('#cu-cards');
+  const quick = $s<HTMLElement>('#cu-quick');
+  const editor = $s<HTMLElement>('#cu-editor');
+  const status = $s<HTMLElement>('#cu-build-status');
   const powerBtn = $s<HTMLButtonElement>('#cu-power-btn');
 
   const allRight = () => ways.every((c, i) => c && ['ok', 'warn'].includes(wayCheck(i)!.state));
@@ -477,7 +528,25 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
         ? '<b>All eight are right.</b> Press <b>Power up</b> on the board.'
         : `<b>Challenge:</b> ${placed} of 8 placed, ${good} right${bad ? `, ${bad} need a rethink` : ''}.`;
     powerBtn.disabled = !ready || powered;
+    placeEditor();
   };
+
+  // The breaker chooser floats just under the way being set, so the ways stay in view.
+  function placeEditor() {
+    const way = selWay !== null && ways[selWay] ? board.querySelector(`[data-way="${selWay}"]`) : null;
+    editor.hidden = !way || tab !== 'build';
+    if (editor.hidden || !way) return;
+    const sr = sceneEl.getBoundingClientRect();
+    const wr = way.getBoundingClientRect();
+    const w = editor.offsetWidth;
+    const h = editor.offsetHeight;
+    const floor = sr.height - 150; // keep clear of the tray
+    let y = wr.bottom - sr.top + 10;
+    if (y + h > floor) y = Math.max(10, wr.top - sr.top - 10 - h);
+    const x = Math.max(10, Math.min(sr.width - w - 10, wr.left + wr.width / 2 - sr.left - w / 2));
+    editor.style.left = `${x}px`;
+    editor.style.top = `${y}px`;
+  }
 
   const renderBuild = () => {
     renderBoard();
@@ -951,29 +1020,43 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
     $s<HTMLElement>('#cu-scene-tester').hidden = scene !== 'tester';
     $s<HTMLElement>('#cu-tb-explore').hidden = t === 'build';
     $s<HTMLElement>('#cu-tb-build').hidden = t !== 'build';
+    $s<HTMLElement>('#cu-buildui').hidden = t !== 'build';
+    $s('#cu-scene-board').classList.toggle('is-building', t === 'build');
+    hidePop();
+    if (t !== 'build') editor.hidden = true;
     if (scene === 'board') {
       renderBoard();
       if (t === 'build') renderBuildPanel();
     }
   };
+  // The guide covers Explore and Build; the other tabs have their own tools and hide it.
+  const openTab = (id: Tab) => {
+    if (id === 'build') {
+      guide.go(BUILD_STEP);
+      guide.setVisible(true);
+      return;
+    }
+    showTab(id);
+    guide.setVisible(id === 'explore');
+    if (id === 'explore' && guide.current() >= BUILD_STEP) guide.go(0);
+  };
   TABS.forEach(({ id }) =>
-    $(`#cu-tab-${id}`).addEventListener('click', () => {
-      showTab(id);
-      guide.setVisible(id === 'explore');
-    }),
+    $(`#cu-tab-${id}`).addEventListener('click', () => openTab(id)),
   );
   panel.querySelector('.cu-tabs')!.addEventListener('keydown', (e) => {
     const k = (e as KeyboardEvent).key;
     if (k !== 'ArrowRight' && k !== 'ArrowLeft') return;
     const i = TABS.findIndex((x) => x.id === tab);
     const n = TABS[(i + (k === 'ArrowRight' ? 1 : TABS.length - 1)) % TABS.length].id;
-    showTab(n);
-    guide.setVisible(n === 'explore');
+    openTab(n);
     $(`#cu-tab-${n}`).focus();
   });
 
+  $('#cu-go-build').addEventListener('click', () => openTab('build'));
+
   // first paint
   showPart('main');
+  hidePop();
   selPart = null;
   panel.querySelectorAll('[data-partbtn]').forEach((b) => b.setAttribute('aria-current', 'false'));
   renderBoard();
@@ -999,36 +1082,42 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
   };
   const lever = (id: string) => board.querySelector(`[data-lever="${id}"]`);
   const tBtn = (id: string) => board.querySelector(`[data-test="${id}"]`);
+  const enterBuild = () => {
+    if (tab !== 'build') showTab('build');
+    guide?.setVisible(true);
+  };
+  const BUILD_STEP = 6;
   const guide = mountGuide(
     stage,
     [
       {
-        title: 'The fuse box',
-        text: 'The supply from the meter comes into the consumer unit and is split into separate circuits. Each circuit gets its own protection, so a fault on one need not take out the rest.',
-        tryIt: 'Tap any switch on the board and read what it did in the panel.',
+        kicker: 'Inside',
+        title: 'Take the cover off',
+        text: 'The consumer unit, or fuse box, splits the supply from the meter into separate circuits. A plastic cover hides the wiring. Only a competent person should ever open a real one.',
+        tryIt: 'Click the cover on the board to lift it off.',
         onEnter: () => {
           toExplore(true);
-          pulse(board.querySelector('.cu-dev-main'));
+          pulse(board.querySelector('.cu-cover-plate'));
+        },
+      },
+      {
+        kicker: 'Busbar and wires',
+        title: 'The copper comb',
+        text: 'Behind the cover, a copper busbar carries line to every breaker. Neutrals and earths have their own bars, and the meter tails come in at the main switch.',
+        tryIt: 'Click the copper bar above the breakers and read the label.',
+        onEnter: () => {
+          toExplore(false);
+          pulse(board.querySelector('[data-part="busbar"]'));
         },
       },
       {
         kicker: 'Main switch',
         title: 'Everything off at once',
         text: 'The main switch cuts every circuit together, so you can isolate the board. The meter tails feeding it stay live: only the supplier can switch those off.',
-        tryIt: 'Switch the main switch off. "All on" brings everything back.',
-        onEnter: () => {
-          toExplore(true);
-          pulse(lever('main'));
-        },
-      },
-      {
-        kicker: 'Inside',
-        title: 'Take the cover off',
-        text: 'Behind the cover, a copper busbar carries line to every breaker. Neutrals and earths have their own bars. Only a competent person should open a real one.',
-        tryIt: 'Tap the copper bar above the breakers to see what it does.',
+        tryIt: 'Switch the main switch off and watch the lights go out. "All on" brings it back.',
         onEnter: () => {
           toExplore(false);
-          pulse(board.querySelector('[data-part="busbar"]'));
+          pulse(lever('main'));
         },
       },
       {
@@ -1062,12 +1151,33 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
         },
       },
       {
-        title: 'Now it is your turn',
-        text: 'Build a board of your own, see how fast a breaker trips on the Curves tab, and test an RCD. Then take the quiz to tick this chapter off.',
-        tryIt: 'Open the Build tab when you are ready.',
+        kicker: 'Build it',
+        title: 'Fill the empty board',
+        text: 'Now you wire up a board. There are eight ways and eight circuits to place, from the cooker to the garage.',
+        tryIt: 'Drag a circuit from the tray onto a way on the board, or tap a circuit and then a way.',
         onEnter: () => {
-          toExplore(false);
-          pulse($('#cu-tab-build'));
+          enterBuild();
+          pulse(stage.querySelector('#cu-cards'));
+        },
+      },
+      {
+        kicker: 'Build it',
+        title: 'Choose each breaker',
+        text: 'Every circuit needs a breaker big enough for its load but small enough to protect its cable, plus 30 mA RCD protection where the rules ask for it.',
+        tryIt: 'Tap a filled way, then pick its breaker size and RCD type. Green ticks mean it is right.',
+        onEnter: () => {
+          enterBuild();
+          pulse(stage.querySelector('#cu-editor') ?? stage.querySelector('#cu-cards'));
+        },
+      },
+      {
+        kicker: 'Build it',
+        title: 'Power it up',
+        text: 'When all eight ways are right, power the board up and try the switches. After this, the Curves and RCDs tabs have more tools, and the quiz ticks the chapter off.',
+        tryIt: 'Press Power up, then flip a few switches.',
+        onEnter: () => {
+          enterBuild();
+          pulse(powerBtn);
         },
       },
     ],
