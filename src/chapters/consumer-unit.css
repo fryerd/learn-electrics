@@ -1292,3 +1292,24 @@ body.cu-dragging * {
     height: calc(100% - 48px);
   }
 }
+
+/* The stage guide's pulse uses box-shadow, which SVG ignores: ring SVG parts with a glow instead. */
+.cu-svg .gd-pulse {
+  animation: cu-gd-pulse 1.9s ease-out 1;
+}
+@keyframes cu-gd-pulse {
+  0%,
+  100% {
+    filter: none;
+  }
+  30%,
+  60% {
+    filter: drop-shadow(0 0 4px rgba(31, 95, 191, 0.95)) drop-shadow(0 0 10px rgba(31, 95, 191, 0.6));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cu-svg .gd-pulse {
+    animation: none;
+    filter: drop-shadow(0 0 4px rgba(31, 95, 191, 0.95));
+  }
+}

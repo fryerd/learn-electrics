@@ -4,7 +4,7 @@ import type { QuizQuestion } from './socket-lesson';
 
 export const intro = {
   title: 'The consumer unit',
-  text: 'This is where the supply from the meter is split into separate circuits, each with its own protection. People call it the fuse box or the distribution board. Take the cover off, flip the switches and tap any part to find out what it does.',
+  text: 'Where the supply is split into circuits, each with its own protection. Follow the guide on the board, or tap any part to find out what it does.',
 };
 
 /* ------------------------------------------------------------------ parts */
