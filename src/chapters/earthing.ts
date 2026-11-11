@@ -540,6 +540,7 @@ export const mount: ChapterMount = ({ stage, panel, complete }) => {
         text: 'Metal gas and water pipes can bring a different voltage in from outside. Bonding them to the main earth terminal (MET) makes everything you touch rise together in a fault.',
         tryIt: 'Drag a clamp from the tray onto each pipe.',
         onEnter: () => {
+          setArrangement('tncs');
           selectTab('bond');
           pulse(tray);
         },
