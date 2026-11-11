@@ -1,0 +1,1294 @@
+/* Chapter 4: the consumer unit. Every class is prefixed cu-. */
+
+.cu-stage,
+.cu-scene {
+  position: absolute;
+  inset: 0;
+}
+.cu-scene[hidden] {
+  display: none;
+}
+.cu-svg {
+  position: absolute;
+  inset: 8px 8px 8px;
+  width: calc(100% - 16px);
+  height: calc(100% - 16px);
+  font-family: var(--font);
+  user-select: none;
+  -webkit-user-select: none;
+}
+#cu-board {
+  top: 46px;
+  height: calc(100% - 54px);
+}
+
+/* ---------------------------------------------------------------- toolbar */
+.cu-toolbar {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  padding: 5px;
+  background: rgba(251, 250, 247, 0.94);
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  z-index: 2;
+  max-width: calc(100% - 20px);
+}
+.cu-toolbar[hidden] {
+  display: none;
+}
+.cu-toolbar button {
+  border: 2px solid transparent;
+  background: transparent;
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s, opacity 0.15s;
+}
+.cu-toolbar button:hover:not(:disabled) {
+  background: var(--paper-2);
+}
+.cu-toolbar button[aria-pressed='true'] {
+  background: var(--ink);
+  color: #fff;
+}
+.cu-toolbar .cu-tb-primary {
+  background: var(--accent);
+  color: #fff;
+}
+.cu-toolbar .cu-tb-primary:hover:not(:disabled) {
+  background: #194f9f;
+}
+.cu-toolbar button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.cu-toast {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translate(-50%, 8px);
+  max-width: min(90%, 460px);
+  padding: 7px 14px;
+  border-radius: 10px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 15px;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s, transform 0.25s;
+}
+.cu-toast.is-on {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* ------------------------------------------------------------- the board */
+.cu-encl {
+  fill: #fdfcf9;
+  stroke: #c8c2b5;
+  stroke-width: 2;
+}
+.cu-encl-in {
+  fill: #ece9e1;
+  stroke: #ddd8cc;
+  stroke-width: 1.5;
+}
+.cu-din {
+  fill: #c3c7cc;
+  stroke: #a7acb3;
+}
+.cu-copper {
+  fill: url(#cu-copper-g);
+  stroke: #8a4e22;
+  stroke-width: 1;
+  transition: filter 0.4s;
+}
+.cu-pin {
+  fill: #b8763c;
+}
+.is-live .cu-copper {
+  fill: url(#cu-copper-live);
+  filter: drop-shadow(0 0 4px rgba(255, 176, 74, 0.75));
+}
+.cu-nbar {
+  fill: #c9d6ea;
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+.cu-ebar {
+  fill: #d4e8d6;
+  stroke: #2f9e4f;
+  stroke-width: 1.5;
+}
+.cu-screw {
+  fill: #e3e1da;
+  stroke: #7b8189;
+  stroke-width: 1.2;
+}
+.cu-n {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3.5;
+  stroke-linejoin: round;
+}
+.cu-n-run {
+  stroke-width: 4;
+}
+.cu-e {
+  fill: none;
+  stroke: #2f9e4f;
+  stroke-width: 3.5;
+}
+.cu-e-y {
+  fill: none;
+  stroke: #f2c40f;
+  stroke-width: 3.5;
+  stroke-dasharray: 5 5;
+}
+.cu-e-main,
+.cu-e-main + .cu-e-y {
+  stroke-width: 5;
+}
+.cu-tail-l,
+.cu-tail-n {
+  fill: none;
+  stroke-width: 7;
+  stroke-linecap: round;
+}
+.cu-tail-l {
+  stroke: var(--brown);
+}
+.cu-tail-n {
+  stroke: var(--accent);
+}
+.cu-l {
+  fill: none;
+  stroke: #b5a698;
+  stroke-width: 3.5;
+  transition: stroke 0.35s;
+}
+.is-live .cu-l {
+  stroke: var(--brown);
+}
+.cu-flow {
+  fill: none;
+  stroke: #f6c77f;
+  stroke-width: 2;
+  stroke-dasharray: 3 9;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.is-live .cu-flow {
+  opacity: 0.9;
+}
+.cu-anim .is-live .cu-flow {
+  animation: cu-flow 0.9s linear infinite;
+}
+@keyframes cu-flow {
+  to {
+    stroke-dashoffset: -12;
+  }
+}
+.cu-flying {
+  fill: none;
+  stroke: #f4f2ec;
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 0.6px #6d737a);
+}
+.cu-sheath {
+  fill: #ece9e2;
+  stroke: #9aa0a6;
+  stroke-width: 1.5;
+}
+.cu-lamp {
+  fill: #c6c2b8;
+  stroke: #8d9298;
+  stroke-width: 1.2;
+  transition: fill 0.3s;
+}
+.cu-glow {
+  fill: #ffd24a;
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+.is-live .cu-lamp {
+  fill: #ffd24a;
+  stroke: #b8860b;
+}
+.is-live .cu-glow {
+  opacity: 0.38;
+}
+.cu-cl,
+.cu-tl {
+  font-size: 13.5px;
+  font-weight: 700;
+  fill: var(--ink);
+}
+.cu-tl {
+  fill: var(--ink-soft);
+}
+.cu-hit {
+  fill: transparent;
+}
+.cu-part {
+  cursor: pointer;
+}
+
+/* devices */
+.cu-body {
+  fill: #ffffff;
+  stroke: #bdb7aa;
+  stroke-width: 1.5;
+}
+.cu-front {
+  fill: #f6f5f1;
+  stroke: #dad6cc;
+}
+.cu-dev {
+  cursor: pointer;
+}
+.cu-dev:hover .cu-body {
+  stroke: var(--ink-soft);
+}
+.cu-dev-main .cu-front {
+  fill: #fbeceb;
+}
+.cu-dev-rcd .cu-front {
+  fill: #eaf0fa;
+}
+.cu-dev-rcbo .cu-front {
+  fill: #eef3fb;
+}
+.cu-flag {
+  fill: #4caf6a;
+  transition: fill 0.2s;
+}
+.cu-flag.is-on {
+  fill: #d23f31;
+}
+.cu-slot {
+  fill: #2b3138;
+}
+.cu-knob {
+  fill: #3a414a;
+  stroke: #1d232b;
+}
+.cu-knob-main {
+  fill: #c9372c;
+  stroke: #8f2219;
+}
+.cu-knob-rcd {
+  fill: #2c6ad0;
+  stroke: #194a9a;
+}
+.cu-knob-shine {
+  fill: rgba(255, 255, 255, 0.35);
+}
+.cu-knob-g {
+  transition: transform 0.32s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+.cu-knob-g.is-off {
+  transform: translateY(23px);
+}
+.cu-knob-g-big.is-off {
+  transform: translateY(32px);
+}
+.cu-lever {
+  cursor: pointer;
+}
+.cu-lever:focus-visible,
+.cu-tbtn:focus-visible,
+.cu-way:focus-visible {
+  outline: none;
+}
+.cu-lever:focus-visible .cu-slot,
+.cu-tbtn:focus-visible .cu-t {
+  stroke: var(--accent);
+  stroke-width: 3;
+}
+.cu-dev-label {
+  font-size: 15px;
+  font-weight: 700;
+  fill: var(--ink);
+}
+.cu-dev-sub {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  fill: var(--ink-soft);
+}
+.cu-type {
+  fill: #fff;
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+.cu-type-t {
+  font-size: 12px;
+  font-weight: 700;
+  fill: var(--accent);
+}
+.cu-t {
+  fill: #f2c40f;
+  stroke: #a88507;
+  stroke-width: 1.2;
+  transition: transform 0.1s;
+}
+.cu-t-t {
+  font-size: 10px;
+  font-weight: 700;
+  fill: var(--ink);
+  pointer-events: none;
+}
+.cu-tbtn {
+  cursor: pointer;
+}
+.cu-tbtn:active .cu-t {
+  fill: #d8ad00;
+}
+
+/* selection highlight */
+.cu-sel .cu-body,
+.cu-sel .cu-copper,
+.cu-sel .cu-nbar,
+.cu-sel .cu-ebar,
+.cu-sel .cu-sheath,
+.cu-sel .cu-way-box {
+  stroke: var(--accent);
+  stroke-width: 3;
+}
+.cu-sel.cu-tbtn .cu-t {
+  stroke: var(--accent);
+  stroke-width: 3;
+}
+.cu-sel .cu-tail-l,
+.cu-sel .cu-tail-n {
+  filter: drop-shadow(0 0 3px rgba(31, 95, 191, 0.9));
+}
+.cu-sel.cu-cover .cu-cover-plate {
+  stroke: var(--accent);
+  stroke-width: 3;
+}
+
+/* cover */
+.cu-cover {
+  transition: transform 0.55s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s;
+  cursor: pointer;
+}
+.cu-cover-off .cu-cover {
+  transform: translate(26px, -34px);
+  opacity: 0;
+  pointer-events: none;
+}
+.cu-cover-plate {
+  fill: url(#cu-cover-g);
+  stroke: #c8c2b5;
+  stroke-width: 2;
+  filter: drop-shadow(0 3px 6px rgba(29, 35, 43, 0.18));
+}
+.cu-cov-strip {
+  fill: #fff;
+  stroke: #d9d5cb;
+}
+.cu-cov-l {
+  font-size: 11.5px;
+  font-weight: 700;
+  fill: var(--ink-soft);
+}
+.cu-cov-t {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  fill: var(--ink-soft);
+}
+.cu-cov-s {
+  font-size: 12.5px;
+  letter-spacing: 0.06em;
+  fill: var(--ink-soft);
+}
+.cu-cov-screw {
+  fill: #e3e1da;
+  stroke: #9aa0a6;
+}
+.cu-cov-slot {
+  stroke: #7b8189;
+  stroke-width: 1.5;
+}
+
+/* build ways */
+.cu-way {
+  cursor: pointer;
+}
+.cu-way-box {
+  fill: rgba(255, 255, 255, 0.55);
+  stroke: #a9a395;
+  stroke-width: 2;
+  stroke-dasharray: 6 5;
+  transition: fill 0.2s, stroke 0.2s;
+}
+.cu-way-empty:hover .cu-way-box,
+.cu-way-empty:focus-visible .cu-way-box {
+  fill: #fff;
+  stroke: var(--accent);
+}
+.cu-way-plus {
+  stroke: #a9a395;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+.cu-way-n {
+  font-size: 15px;
+  font-weight: 700;
+  fill: var(--ink-soft);
+}
+.cu-drop .cu-way-box,
+.cu-drop .cu-body {
+  fill: #e7effb;
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-dasharray: none;
+}
+.cu-way.is-ok .cu-body {
+  stroke: var(--good);
+  stroke-width: 2.5;
+}
+.cu-way.is-warn .cu-body {
+  stroke: #c9851a;
+  stroke-width: 2.5;
+}
+.cu-way.is-bad .cu-body {
+  stroke: var(--bad);
+  stroke-width: 2.5;
+}
+.cu-way.is-pending .cu-body {
+  stroke: #a9a395;
+  stroke-dasharray: 5 4;
+}
+.cu-way.cu-sel .cu-body {
+  stroke: var(--accent);
+  stroke-width: 3.5;
+  stroke-dasharray: none;
+}
+.cu-way:focus-visible .cu-body,
+.cu-way:focus-visible .cu-way-box {
+  stroke: var(--accent);
+  stroke-width: 3.5;
+}
+.cu-powering .cu-copper {
+  transition: filter 0.6s;
+}
+
+body.cu-dragging,
+body.cu-dragging * {
+  cursor: grabbing !important;
+}
+.cu-ghost {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 50;
+  margin: -18px 0 0 -40px;
+  padding: 7px 12px;
+  border-radius: 10px;
+  background: var(--ink);
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+  pointer-events: none;
+  box-shadow: 0 8px 20px rgba(29, 35, 43, 0.3);
+  white-space: nowrap;
+}
+
+/* --------------------------------------------------------------- panel */
+.cu-tabs button {
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  padding: 12px 4px;
+}
+.cu-mt {
+  margin-top: 14px;
+}
+.cu-p {
+  margin: 4px 0 8px;
+  font-size: 15px;
+}
+.cu-goals {
+  list-style: none;
+  margin: 6px 0 10px;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.cu-goals li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  padding: 4px 0;
+  transition: color 0.2s;
+}
+.cu-tick {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  background: #fff;
+  display: grid;
+  place-items: center;
+  transition: background 0.2s, border-color 0.2s;
+}
+.cu-goals li.done {
+  color: var(--ink-soft);
+}
+.cu-goals li.done .cu-tick {
+  background: var(--good);
+  border-color: var(--good);
+}
+.cu-goals li.done .cu-tick::after {
+  content: '';
+  width: 8px;
+  height: 4px;
+  border: solid #fff;
+  border-width: 0 0 2.5px 2.5px;
+  transform: translateY(-1px) rotate(-45deg);
+}
+.cu-say {
+  min-height: 0;
+  font-size: 15px;
+  border-left: 5px solid var(--brown);
+  background: var(--paper);
+  border-radius: 0 8px 8px 0;
+  padding: 0 12px;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s, padding 0.3s;
+}
+.cu-say.is-on {
+  max-height: 200px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+}
+.cu-info {
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  padding: 12px 14px 4px;
+  margin: 4px 0 14px;
+}
+.cu-info h2 {
+  font-size: 19px;
+}
+.cu-info .uk {
+  margin-bottom: 10px;
+}
+.cu-pop {
+  animation: cu-pop 0.3s ease-out;
+}
+@keyframes cu-pop {
+  from {
+    opacity: 0.4;
+    transform: translateY(4px);
+  }
+}
+.cu-parts {
+  margin-top: 6px;
+}
+
+/* cards */
+.cu-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 6px;
+}
+.cu-card {
+  position: relative;
+  text-align: left;
+  border: 2px solid var(--line);
+  background: var(--paper);
+  border-radius: 10px;
+  padding: 7px 9px 8px;
+  line-height: 1.15;
+  touch-action: none;
+  cursor: grab;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+.cu-card b {
+  display: block;
+  font-size: 15px;
+}
+.cu-card small {
+  display: block;
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin-top: 2px;
+}
+.cu-card:hover {
+  border-color: var(--ink-soft);
+}
+.cu-card[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(31, 95, 191, 0.3);
+}
+.cu-card.is-placed {
+  background: #fff;
+}
+.cu-card-way {
+  display: block;
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-top: 4px;
+  color: var(--ink-soft);
+}
+.cu-card-way:empty {
+  display: none;
+}
+.cu-card[data-state='ok'] {
+  border-color: var(--good);
+}
+.cu-card[data-state='ok'] .cu-card-way {
+  color: var(--good);
+}
+.cu-card[data-state='warn'] {
+  border-color: #c9851a;
+}
+.cu-card[data-state='bad'] {
+  border-color: var(--bad);
+}
+.cu-card[data-state='bad'] .cu-card-way {
+  color: var(--bad);
+}
+.cu-quick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 15px;
+}
+.cu-quick[hidden] {
+  display: none;
+}
+.cu-quick span {
+  width: 100%;
+}
+.cu-quick .ghost {
+  min-width: 38px;
+  padding: 5px 8px;
+}
+.cu-editor {
+  margin: 12px 0 14px;
+}
+.cu-hint {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 15px;
+}
+.cu-ed-head {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 10px;
+  align-items: center;
+  border-top: 2px solid var(--line);
+  padding-top: 12px;
+  margin-bottom: 8px;
+}
+.cu-ed-head b {
+  font-size: 19px;
+}
+.cu-ed-head small {
+  grid-column: 2;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+.cu-ed-way {
+  grid-row: span 2;
+  background: var(--ink);
+  color: #fff;
+  border-radius: 8px;
+  padding: 6px 9px;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.cu-rates,
+.cu-seg,
+.cu-tests {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.cu-rates .ghost,
+.cu-seg .ghost {
+  padding: 5px 10px;
+  font-size: 14px;
+  letter-spacing: 0.03em;
+}
+.cu-rates .ghost[aria-pressed='true'],
+.cu-seg .ghost[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+.cu-fb li {
+  font-size: 15px;
+}
+.cu-fb:empty {
+  display: none;
+}
+.cu-fb li.warn {
+  border-left-color: #c9851a;
+  background: #fbf0d9;
+}
+
+/* curves */
+.cu-verdict {
+  margin: 12px 0 0;
+  font-size: 15px;
+}
+.cu-plot {
+  fill: #fff;
+  stroke: var(--line);
+  stroke-width: 2;
+}
+.cu-safe {
+  fill: #e9f4ec;
+}
+.cu-safe-t {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  fill: var(--good);
+}
+.cu-grid {
+  stroke: #e7e3da;
+  stroke-width: 1;
+}
+.cu-grid-1 {
+  stroke: #b9b3a6;
+  stroke-dasharray: 4 4;
+}
+.cu-band {
+  fill: rgba(107, 63, 29, 0.2);
+  stroke: var(--brown);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  transition: d 0.4s;
+}
+.cu-band-other {
+  fill: none;
+  stroke: #9aa0a6;
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+}
+.cu-mag {
+  fill: rgba(31, 95, 191, 0.08);
+}
+.cu-mag-t {
+  font-size: 13px;
+  font-weight: 700;
+  fill: var(--accent);
+}
+.cu-other-t {
+  font-size: 12.5px;
+  font-weight: 600;
+  fill: #7b8189;
+}
+.cu-anno {
+  font-size: 16px;
+  font-weight: 700;
+  fill: var(--brown);
+}
+.cu-anno-s {
+  font-size: 13px;
+  fill: var(--ink-soft);
+}
+.cu-ax {
+  font-size: 13px;
+  font-weight: 700;
+  fill: var(--ink-soft);
+}
+.cu-ax-a {
+  font-size: 12px;
+  fill: var(--ink-soft);
+}
+.cu-ax-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  fill: var(--ink-soft);
+}
+.cu-chart-name {
+  font-size: 22px;
+  font-weight: 700;
+  fill: var(--ink);
+}
+.cu-mk-line {
+  stroke: var(--ink);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 4;
+}
+.cu-mk-range {
+  stroke: var(--ink);
+  stroke-width: 7;
+  stroke-linecap: round;
+}
+.cu-mk-dot {
+  fill: #fff;
+  stroke: var(--ink);
+  stroke-width: 3;
+}
+.cu-mk-tag {
+  fill: var(--ink);
+}
+.cu-mk-tag-t {
+  font-size: 14px;
+  font-weight: 700;
+  fill: #fff;
+}
+.is-instant .cu-mk-range,
+.is-instant .cu-mk-tag {
+  stroke: var(--bad);
+  fill: var(--bad);
+}
+.is-instant .cu-mk-dot {
+  stroke: var(--bad);
+}
+.is-none .cu-mk-tag {
+  fill: var(--good);
+}
+.is-none .cu-mk-line {
+  stroke: var(--good);
+}
+
+/* RCD tester */
+.cu-tester {
+  fill: #2b3138;
+  stroke: #f2c40f;
+  stroke-width: 8;
+}
+.cu-tester-in {
+  fill: #343b44;
+}
+.cu-lcd {
+  fill: #cfdcc3;
+  stroke: #1d232b;
+  stroke-width: 3;
+}
+.cu-lcd-v {
+  font-size: 54px;
+  font-weight: 700;
+  fill: #1d2a1a;
+  font-variant-numeric: tabular-nums;
+}
+.cu-lcd-u {
+  font-size: 18px;
+  font-weight: 700;
+  fill: #1d2a1a;
+}
+.cu-lcd-s {
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  fill: #33452e;
+}
+.cu-dial-ring {
+  fill: #232930;
+  stroke: #4b535d;
+  stroke-width: 2;
+}
+.cu-dial {
+  transition: transform 0.4s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+.cu-dial-knob {
+  fill: #555e69;
+  stroke: #1d232b;
+  stroke-width: 2;
+}
+.cu-dial-ptr {
+  fill: #f2c40f;
+}
+.cu-dial-t {
+  font-size: 13px;
+  font-weight: 700;
+  fill: #9aa3ad;
+  transition: fill 0.2s;
+}
+.cu-dial-t.is-on {
+  fill: #f2c40f;
+}
+.cu-test-btn {
+  fill: #2f9e4f;
+  stroke: #1b6b33;
+  stroke-width: 3;
+  transition: fill 0.15s;
+}
+.cu-test-btn.is-on {
+  fill: #47c06a;
+}
+.cu-test-t {
+  font-size: 13px;
+  font-weight: 700;
+  fill: #fff;
+  letter-spacing: 0.06em;
+}
+.cu-tester-name {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  fill: #9aa3ad;
+}
+.cu-lead {
+  fill: none;
+  stroke-width: 6;
+  stroke-linecap: round;
+}
+.cu-lead-l {
+  stroke: var(--brown);
+}
+.cu-lead-n {
+  stroke: var(--accent);
+}
+.cu-lead-e {
+  stroke: #2f9e4f;
+}
+.cu-lead-ey {
+  stroke: #f2c40f;
+  stroke-dasharray: 6 6;
+}
+.cu-sock {
+  fill: #fff;
+  stroke: #c8c2b5;
+  stroke-width: 2;
+}
+.cu-plug {
+  fill: #f3f1ec;
+  stroke: #9aa0a6;
+  stroke-width: 2;
+}
+.cu-plug-t {
+  font-size: 13px;
+  font-weight: 700;
+  fill: var(--ink-soft);
+}
+.cu-tr-circ {
+  fill: none;
+  stroke: var(--brown);
+  stroke-width: 5;
+  stroke-linejoin: round;
+  transition: stroke 0.3s;
+}
+.cu-tr-circ.is-dead {
+  stroke: #c9bcae;
+}
+.cu-tr-leak {
+  fill: none;
+  stroke: #2f9e4f;
+  stroke-width: 3;
+  stroke-dasharray: 4 7;
+  opacity: 0.25;
+  transition: opacity 0.2s;
+}
+.cu-tr-leak.is-on {
+  opacity: 1;
+}
+.cu-anim .cu-tr-leak.is-on {
+  animation: cu-flow 0.6s linear infinite;
+}
+.cu-tr-earth path {
+  stroke: #2f9e4f;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+.cu-tr-label {
+  font-size: 22px;
+  font-weight: 700;
+  fill: var(--ink);
+}
+.cu-tr-state {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  fill: var(--good);
+}
+.cu-tr-state.is-off {
+  fill: var(--bad);
+}
+.cu-sc-t {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  fill: var(--ink-soft);
+}
+.cu-sc-bg {
+  fill: #e9e6df;
+}
+.cu-sc-win {
+  fill: rgba(47, 143, 79, 0.35);
+}
+.cu-sc-tick {
+  stroke: var(--ink-soft);
+  stroke-width: 1.5;
+}
+.cu-sc-n {
+  font-size: 12px;
+  font-weight: 700;
+  fill: var(--ink-soft);
+}
+.cu-sc-ptr {
+  fill: var(--ink);
+}
+.cu-sc-ptr.is-pass {
+  fill: var(--good);
+}
+.cu-sc-ptr.is-fail {
+  fill: var(--bad);
+}
+
+.cu-tests .ghost {
+  flex: 1 1 0;
+  min-width: 70px;
+  padding: 6px 4px;
+  text-align: center;
+  line-height: 1.1;
+}
+.cu-tests .ghost b {
+  display: block;
+  font-size: 17px;
+}
+.cu-tests .ghost small {
+  display: block;
+  font-size: 12px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--ink-soft);
+}
+.cu-results {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+  font-size: 14px;
+}
+.cu-results th,
+.cu-results td {
+  text-align: left;
+  padding: 5px 4px;
+  border-bottom: 1px solid var(--line);
+}
+.cu-results thead th {
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.cu-results td:nth-child(3) {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.cu-pf {
+  display: inline-block;
+  border-radius: 6px;
+  padding: 1px 7px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.cu-pf.ok {
+  background: var(--good-bg);
+  color: var(--good);
+}
+.cu-pf.bad {
+  background: var(--bad-bg);
+  color: var(--bad);
+}
+
+/* appliance game */
+.cu-types {
+  margin: 6px 0 10px;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  display: grid;
+  gap: 2px;
+}
+.cu-types b {
+  display: inline-block;
+  min-width: 26px;
+  color: var(--accent);
+}
+.cu-game {
+  display: grid;
+  gap: 8px;
+}
+.cu-game-row {
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  padding: 7px 9px;
+  background: var(--paper);
+}
+.cu-game-name {
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.2;
+}
+.cu-game-opts {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.cu-game-opts button {
+  flex: 1;
+  border: 2px solid var(--line);
+  background: #fff;
+  border-radius: 8px;
+  padding: 4px 0;
+  font-weight: 700;
+  font-size: 15px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.cu-game-opts button:hover {
+  border-color: var(--ink-soft);
+}
+.cu-game-opts button.right {
+  border-color: var(--good);
+  background: var(--good-bg);
+}
+.cu-game-opts button.wrong {
+  border-color: var(--bad);
+  background: var(--bad-bg);
+}
+.cu-game-fb {
+  margin: 6px 0 0;
+  font-size: 14px;
+}
+.cu-game-fb:empty {
+  display: none;
+}
+.cu-game-fb.ok {
+  color: #22693a;
+}
+.cu-game-fb.bad {
+  color: var(--bad);
+}
+.cu-score {
+  margin: 8px 0 0;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+/* selectivity */
+.cu-sel {
+  margin-top: 10px;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  padding: 8px;
+}
+.cu-selsvg {
+  display: block;
+  width: 100%;
+  font-family: var(--font);
+}
+.cu-sel-wire {
+  fill: none;
+  stroke: var(--brown);
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+.cu-sel-dev rect:first-child {
+  fill: #eaf0fa;
+  stroke: #9aa0a6;
+  stroke-width: 1.5;
+}
+.cu-sel-knob {
+  fill: #2c6ad0;
+  transition: transform 0.3s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+.cu-sel-dev.is-off .cu-sel-knob {
+  transform: translateY(12px);
+}
+.cu-sel-dev.is-off rect:first-child {
+  stroke: var(--bad);
+  stroke-width: 2.5;
+}
+.cu-sel-dev text {
+  font-size: 14px;
+  font-weight: 700;
+  fill: var(--ink);
+}
+.cu-sel-cap {
+  font-size: 12px;
+  font-weight: 700;
+  fill: var(--ink-soft);
+}
+.cu-sel-house path {
+  fill: var(--paper);
+  stroke: var(--ink-soft);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+.cu-sel-lamp {
+  fill: #c6c2b8;
+  stroke: #8d9298;
+  transition: fill 0.3s;
+}
+.cu-sel-lamp.is-lit {
+  fill: #ffd24a;
+  stroke: #b8860b;
+}
+.cu-sel-fault path {
+  fill: none;
+  stroke: #c9c4b8;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.cu-sel-fault.is-on path {
+  stroke: var(--bad);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cu-anim .is-live .cu-flow,
+  .cu-anim .cu-tr-leak.is-on {
+    animation: none;
+  }
+  .cu-pop {
+    animation: none;
+  }
+}
+
+@media (max-width: 880px) {
+  .cu-toolbar button {
+    padding: 5px 9px;
+    font-size: 13px;
+  }
+  .cu-svg {
+    inset: 4px;
+    width: calc(100% - 8px);
+    height: calc(100% - 8px);
+  }
+  #cu-board {
+    top: 44px;
+    height: calc(100% - 48px);
+  }
+}
