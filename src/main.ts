@@ -56,6 +56,33 @@ const pills = initPills((id) => {
   location.hash = `#/${id}`;
 });
 
+// Wide screens: the side panel can be tucked away so the picture gets the whole width.
+const panelToggle = document.createElement('button');
+panelToggle.type = 'button';
+panelToggle.className = 'panel-toggle';
+panelToggle.innerHTML = '<span class="pt-arrow" aria-hidden="true">&rsaquo;</span><span class="pt-text"></span>';
+document.getElementById('stage')!.append(panelToggle);
+const setPanelHidden = (hide: boolean) => {
+  app.classList.toggle('panel-collapsed', hide);
+  panelToggle.setAttribute('aria-expanded', String(!hide));
+  panelToggle.setAttribute('aria-label', hide ? 'Show the side panel' : 'Hide the side panel');
+  panelToggle.querySelector('.pt-text')!.textContent = hide ? 'Panel' : '';
+  try {
+    localStorage.setItem('le-panel-hidden', hide ? '1' : '0');
+  } catch {
+    /* storage unavailable: fine */
+  }
+  requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+};
+panelToggle.addEventListener('click', () => setPanelHidden(!app.classList.contains('panel-collapsed')));
+let startHidden = false;
+try {
+  startHidden = localStorage.getItem('le-panel-hidden') === '1';
+} catch {
+  /* ignore */
+}
+setPanelHidden(startHidden);
+
 // The homepage: the 3D socket and the way in. It is its own little "chapter" with no panel.
 let home: { activate(): void; deactivate(): void } | undefined;
 
